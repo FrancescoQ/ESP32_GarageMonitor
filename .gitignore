@@ -1,0 +1,35 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+
+# Build artifacts
+*.o
+*.a
+*.bin
+*.elf
+*.map
+
+# IDE
+.DS_Store
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+secrets.h
+
+# Test coverage
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Documentation
+docs/_build/
