@@ -84,6 +84,9 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
    - SMS receive and parsing
    - Extract sender phone number from SMS
    - Network registration checks
+   - **SMS storage management**: Delete processed messages after reading (`AT+CMGD`)
+   - Periodic purge of read messages to prevent storage full (SIM holds ~20-50 SMS)
+   - Note: When SMS storage is full, new incoming messages are silently dropped by the network
 
 3. **MessageParser Class + Security**
    - Parse incoming SMS commands
@@ -116,6 +119,8 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - [ ] "CLOSE" command triggers GPIO output
 - [ ] Handle network dropouts gracefully
 - [ ] International number format handled correctly
+- [ ] SMS deleted from storage after processing
+- [ ] System handles near-full SMS storage gracefully
 
 **Hardware Setup:**
 - ESP32-C3 dev board

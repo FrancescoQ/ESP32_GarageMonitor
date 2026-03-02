@@ -64,7 +64,7 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 ### 🔲 Phase 1: Door Monitoring + SMS Core (Week 2-3)
 **Key deliverables**:
 - DoorSensor class (reed switch monitoring with debouncing)
-- SMSHandler class (SIM7000G AT commands, send/receive)
+- SMSHandler class (SIM7000G AT commands, send/receive, **SMS storage management**)
 - MessageParser class with **sender verification and permissions**
 - DisplayController class (LCD status display)
 - Basic state machine (IDLE, ALERT, COMMAND_PROCESSING)
