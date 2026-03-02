@@ -21,9 +21,12 @@
 *.swo
 *~
 
-# Environment
+# Environment / Secrets
 .env
+Secrets.h
+# Also catch lowercase and paths
 secrets.h
+**/Secrets.h
 
 # Test coverage
 coverage/

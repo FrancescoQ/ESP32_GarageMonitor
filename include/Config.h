@@ -7,9 +7,15 @@
  * Central configuration file for the garage monitoring system.
  * All pin assignments and hardware constants are defined here.
  *
+ * Sensitive data (SIM PIN, phone numbers) lives in Secrets.h,
+ * which is gitignored. See Secrets.h.example for the template.
+ *
  * @author Francesco
  * @date February 2026
  */
+
+// Sensitive configuration (SIM PIN, authorized numbers)
+#include "Secrets.h"
 
 // ============================================================================
 // I2C Bus (shared: LCD + BME280)
@@ -34,10 +40,6 @@ const int PIN_SIM_PWR = 4;    // SIM7000G power key
 const int PIN_SIM_DTR = 18;   // SIM7000G DTR (sleep control, Phase 4)
 
 const long SIM_BAUD_RATE = 115200;
-
-// SIM card PIN (set to "" if PIN lock is disabled)
-// IMPORTANT: Replace with your actual SIM PIN before flashing!
-const char* const SIM_PIN = "1234";
 
 // ============================================================================
 // Door Sensor (Reed Switch)
