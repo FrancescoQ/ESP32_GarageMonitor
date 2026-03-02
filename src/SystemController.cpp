@@ -89,7 +89,11 @@ void SystemController::loop() {
         Serial.println(F("'"));
 
         // Delete after reading to prevent SIM storage from filling up
-        m_modem.deleteSMS(idx);
+        if (!m_modem.deleteSMS(idx)) {
+          Serial.print(F("[SYS] Retrying delete for SMS #"));
+          Serial.println(idx);
+          m_modem.deleteSMS(idx);
+        }
       }
     }
   }

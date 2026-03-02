@@ -250,19 +250,26 @@ bool ModemHandler::readSMS(int index, ReceivedSMS& sms) {
   if (quoteEnd < 0) return false;
   sms.sender = response.substring(quoteStart + 1, quoteEnd);
 
-  // 3rd quoted field: phonebook name (usually empty)
+  // 3rd quoted field: phonebook name or timestamp
+  // When phonebook is empty the modem returns ",," (unquoted), so the next
+  // quoted field is actually the timestamp, not the phonebook name.
   quoteStart = response.indexOf('"', quoteEnd + 1);
   if (quoteStart >= 0) {
     quoteEnd = response.indexOf('"', quoteStart + 1);
-  }
-
-  // 4th quoted field: timestamp
-  if (quoteEnd >= 0) {
-    quoteStart = response.indexOf('"', quoteEnd + 1);
-    if (quoteStart >= 0) {
-      quoteEnd = response.indexOf('"', quoteStart + 1);
-      if (quoteEnd >= 0) {
-        sms.timestamp = response.substring(quoteStart + 1, quoteEnd);
+    if (quoteEnd >= 0) {
+      String field = response.substring(quoteStart + 1, quoteEnd);
+      if (field.indexOf('/') >= 0) {
+        // Contains date separator — this is the timestamp (phonebook was empty)
+        sms.timestamp = field;
+      } else {
+        // This was the phonebook name, next quoted field is timestamp
+        quoteStart = response.indexOf('"', quoteEnd + 1);
+        if (quoteStart >= 0) {
+          quoteEnd = response.indexOf('"', quoteStart + 1);
+          if (quoteEnd >= 0) {
+            sms.timestamp = response.substring(quoteStart + 1, quoteEnd);
+          }
+        }
       }
     }
   }
