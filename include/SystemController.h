@@ -1,17 +1,18 @@
 #pragma once
 
 #include <Arduino.h>
+#include "ModemHandler.h"
 
 /**
  * @brief System state enumeration
  */
 enum class SystemState {
-    IDLE,
-    MONITORING,
-    ALERT,
-    SLEEP,
-    SETUP,
-    COMMAND_PROCESSING
+  IDLE,
+  MONITORING,
+  ALERT,
+  SLEEP,
+  SETUP,
+  COMMAND_PROCESSING
 };
 
 /**
@@ -21,8 +22,10 @@ enum class SystemState {
 class SystemController {
 public:
   SystemController();
-  ~SystemController();
 
   void begin();
   void loop();
+
+private:
+  ModemHandler m_modem;
 };
