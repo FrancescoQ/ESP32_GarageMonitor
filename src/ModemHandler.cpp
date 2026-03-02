@@ -146,6 +146,28 @@ String ModemHandler::getOperator() {
   return m_modem.getOperator();
 }
 
+bool ModemHandler::sendSMS(const char* number, const char* message) {
+  if (!m_networkConnected) {
+    Serial.println(F("[MODEM] Cannot send SMS: not connected to network"));
+    return false;
+  }
+
+  Serial.print(F("[MODEM] Sending SMS to "));
+  Serial.print(number);
+  Serial.print(F(": "));
+  Serial.println(message);
+
+  bool success = m_modem.sendSMS(String(number), String(message));
+
+  if (success) {
+    Serial.println(F("[MODEM] SMS sent successfully!"));
+  } else {
+    Serial.println(F("[MODEM] SMS send FAILED"));
+  }
+
+  return success;
+}
+
 TinyGsm& ModemHandler::getModem() {
   return m_modem;
 }

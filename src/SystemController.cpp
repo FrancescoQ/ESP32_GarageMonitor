@@ -18,6 +18,9 @@ void SystemController::begin() {
 
   if (m_modem.begin()) {
     Serial.println(F("[SYS] Modem initialized successfully"));
+
+    // Test SMS
+    m_modem.sendSMS("+393494263651", "Test!");
   } else {
     Serial.println(F("[SYS] Modem initialization failed"));
   }

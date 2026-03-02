@@ -61,6 +61,14 @@ public:
   String getOperator();
 
   /**
+   * @brief Send an SMS message
+   * @param number Destination phone number (format: +39xxxxxxxxxx)
+   * @param message Message text (max 160 chars)
+   * @return true if SMS sent successfully
+   */
+  bool sendSMS(const char* number, const char* message);
+
+  /**
    * @brief Access the TinyGsm instance for SMS/data operations
    * @return Reference to internal TinyGsm modem object
    */
