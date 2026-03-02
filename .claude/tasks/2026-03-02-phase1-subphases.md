@@ -232,3 +232,39 @@ Each sub-phase leaves the system in a working state and can be tested independen
 - Added SMS polling loop in `SystemController::loop()` (every 5s via `SMS_POLL_INTERVAL_MS`)
 - Messages printed to Serial and deleted from SIM after reading
 - **Ready for hardware testing**: Send SMS from phone → should appear on Serial monitor → auto-deleted from SIM
+
+---
+
+## Future Improvements
+
+### SMS Reception: Polling → URC Notifications (Phase 4)
+
+Current approach polls with `AT+CMGL="ALL"` every 5 seconds. This works but is wasteful — the modem and UART are busy even when no SMS has arrived, which conflicts with Phase 4 deep sleep goals.
+
+**Better approaches to evaluate in Phase 4:**
+1. **URC-based notification** (`AT+CNMI=2,1`): SIM7000G sends an unsolicited `+CMTI` notification the instant an SMS arrives. No polling needed — just listen for the URC on the serial line. Much more efficient for power management.
+2. **RI pin hardware interrupt**: SIM7000G can pulse the RI (Ring Indicator) pin on SMS arrival. Wire this to an ESP32 GPIO configured as a wake-up source — the ESP32 can stay in deep sleep and wake only when an SMS actually arrives. Needs a GPIO assignment added to `Config.h`.
+
+**Action items for Phase 4:**
+- [ ] Test `AT+CNMI=2,1` URC notification and parse `+CMTI: "SM",<index>` response
+- [ ] Assign RI pin GPIO in `Config.h` and test hardware interrupt wake from deep sleep
+- [ ] Evaluate whether polling can be eliminated entirely or kept as fallback
+
+### Architecture: SMS Functions in ModemHandler (Post-Phase 1 Review)
+
+SMS send/receive/delete are currently in `ModemHandler` for pragmatic reasons — it already owns the serial connection and AT command infrastructure. This works well for Phase 1 but doesn't match the planned architecture:
+
+```
+CommunicationManager
+├── SMSHandler        ← SMS send/receive/delete/storage management
+├── ATCommandInterface
+└── MessageParser
+```
+
+**Current state**: `ModemHandler` handles modem lifecycle (power, init, network) AND SMS operations. As more SMS features are added (multi-part messages, delivery reports, storage management), this class will grow too large.
+
+**Review after Phase 1 completion:**
+- [ ] Evaluate whether to extract SMS operations into a dedicated `SMSHandler` class
+- [ ] `SMSHandler` would take a reference to `ModemHandler` (or its serial stream) for AT command access
+- [ ] `ModemHandler` should ideally be modem lifecycle only: power on/off, SIM unlock, network registration, signal monitoring, raw AT command passthrough
+- [ ] Consider whether `CommunicationManager` wrapper is needed or if `SystemController` can coordinate `ModemHandler` + `SMSHandler` directly
