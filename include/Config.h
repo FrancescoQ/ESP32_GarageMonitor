@@ -56,8 +56,8 @@ const int PIN_RELAY_CLOSE = 25;  // Door close relay
 const int PIN_RELAY_STOP = 26;   // Door stop relay
 const int PIN_RELAY_OPEN = 27;   // Door open relay
 
-// Relay logic: false = active HIGH (relay ON when pin HIGH)
-const bool RELAY_ACTIVE_LOW = true;
+// Relay logic: using HIGH trigger jumper (5V module with 3.3V ESP32)
+const bool RELAY_ACTIVE_LOW = false;
 const int RELAY_ON  = RELAY_ACTIVE_LOW ? LOW : HIGH;
 const int RELAY_OFF = RELAY_ACTIVE_LOW ? HIGH : LOW;
 
