@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pio run:*)"
+      "WebFetch(domain:www.waveshare.com)",
+      "WebSearch"
     ]
   }
 }

@@ -10,4 +10,5 @@ void SystemController::begin() {
 }
 
 void SystemController::loop() {
+  Serial.println(F("loop"));
 }
