@@ -15,11 +15,25 @@
 #include <TinyGsmClient.h>
 
 /**
+ * @brief Parsed data from a received SMS message
+ */
+struct ReceivedSMS {
+  int index;          ///< SIM storage index
+  String sender;      ///< Sender phone number
+  String message;     ///< Message body text
+  String timestamp;   ///< Delivery timestamp from network
+};
+
+/// Maximum number of SMS the polling buffer can track
+static const int MAX_SMS_SLOTS = 30;
+
+/**
  * @brief Manages SIM7000G modem lifecycle and communication
  *
  * Handles the full modem startup sequence (PWRKEY toggle, SIM PIN,
  * TinyGSM init, network registration) and provides signal monitoring.
- * Exposes the TinyGsm instance for use by future SMSHandler.
+ * Includes raw AT command support for SMS receive/read/delete
+ * (TinyGSM only supports send).
  */
 class ModemHandler {
 public:
@@ -69,6 +83,48 @@ public:
   bool sendSMS(const char* number, const char* message);
 
   /**
+   * @brief Poll SIM storage for SMS messages
+   *
+   * Sends AT+CMGL="ALL" and parses response to find stored SMS indices.
+   * Indices are stored internally and accessible via getSMSIndex().
+   *
+   * @return Number of SMS messages found (0 if none or error)
+   */
+  int checkForSMS();
+
+  /**
+   * @brief Get SIM storage index for a found SMS
+   * @param position Position in the found SMS list (0-based)
+   * @return SIM storage index, or -1 if position is out of range
+   */
+  int getSMSIndex(int position) const;
+
+  /**
+   * @brief Read a single SMS from SIM storage
+   * @param index SIM storage index (from getSMSIndex or checkForSMS)
+   * @param sms Output struct filled with sender, message, timestamp
+   * @return true if SMS was read and parsed successfully
+   */
+  bool readSMS(int index, ReceivedSMS& sms);
+
+  /**
+   * @brief Delete a single SMS from SIM storage
+   * @param index SIM storage index to delete
+   * @return true if deletion succeeded
+   */
+  bool deleteSMS(int index);
+
+  /**
+   * @brief Delete all SMS from SIM storage
+   *
+   * Uses AT+CMGD=1,4 to purge all messages. Use periodically
+   * to prevent SIM storage from filling up (silently drops new SMS).
+   *
+   * @return true if deletion succeeded
+   */
+  bool deleteAllSMS();
+
+  /**
    * @brief Access the TinyGsm instance for SMS/data operations
    * @return Reference to internal TinyGsm modem object
    */
@@ -79,6 +135,8 @@ private:
   bool m_ready;
   bool m_networkConnected;
   unsigned long m_lastSignalCheck;
+  int m_smsIndices[MAX_SMS_SLOTS];  ///< SIM storage indices from last poll
+  int m_smsCount;                   ///< Number of SMS found in last poll
 
   /**
    * @brief Send raw AT command and return response

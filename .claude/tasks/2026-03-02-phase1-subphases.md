@@ -207,14 +207,28 @@ bool deleteAllSMS();                        // AT+CMGD=1,4
 
 ## Summary
 
-| Sub-Phase | What | Risk | New Files | Effort |
-|-----------|------|------|-----------|--------|
-| **1A** | SMS Receive (AT commands) | **High** | — | 2-3h |
-| **1B** | DoorSensor class (refactor) | Low | DoorSensor.h/cpp | 1-2h |
-| **1C** | MessageParser + permissions | Medium | MessageParser.h/cpp, AuthConfig.h | 2-3h |
-| **1D** | DisplayController (LCD) | Low | DisplayController.h/cpp | 1-2h |
-| **1E** | Integration + state machine | Medium | — | 3-4h |
+| Sub-Phase | What | Risk | New Files | Effort | Status |
+|-----------|------|------|-----------|--------|--------|
+| **1A** | SMS Receive (AT commands) | **High** | — | 2-3h | ✅ Done |
+| **1B** | DoorSensor class (refactor) | Low | DoorSensor.h/cpp | 1-2h | 🔲 |
+| **1C** | MessageParser + permissions | Medium | MessageParser.h/cpp, AuthConfig.h | 2-3h | 🔲 |
+| **1D** | DisplayController (LCD) | Low | DisplayController.h/cpp | 1-2h | 🔲 |
+| **1E** | Integration + state machine | Medium | — | 3-4h | 🔲 |
 
 **Recommended order**: 1A → 1B → 1C → 1D → 1E
 
 Each sub-phase leaves the system in a working state and can be tested independently on real hardware.
+
+---
+
+## Progress Log
+
+### 2026-03-02: Sub-Phase 1A Complete
+- Added `ReceivedSMS` struct to `ModemHandler.h`
+- Implemented `checkForSMS()` via `AT+CMGL="ALL"` with index parsing
+- Implemented `readSMS()` via `AT+CMGR=<idx>` with quoted-field parsing (sender, timestamp, body)
+- Implemented `deleteSMS()` and `deleteAllSMS()` via `AT+CMGD`
+- Added `getSMSIndex()` for accessing parsed indices
+- Added SMS polling loop in `SystemController::loop()` (every 5s via `SMS_POLL_INTERVAL_MS`)
+- Messages printed to Serial and deleted from SIM after reading
+- **Ready for hardware testing**: Send SMS from phone → should appear on Serial monitor → auto-deleted from SIM

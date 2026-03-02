@@ -21,7 +21,9 @@ ModemHandler::ModemHandler()
   : m_modem(SerialAT),
     m_ready(false),
     m_networkConnected(false),
-    m_lastSignalCheck(0) {
+    m_lastSignalCheck(0),
+    m_smsCount(0) {
+  memset(m_smsIndices, 0, sizeof(m_smsIndices));
 }
 
 bool ModemHandler::begin() {
@@ -163,6 +165,157 @@ bool ModemHandler::sendSMS(const char* number, const char* message) {
     Serial.println(F("[MODEM] SMS sent successfully!"));
   } else {
     Serial.println(F("[MODEM] SMS send FAILED"));
+  }
+
+  return success;
+}
+
+int ModemHandler::checkForSMS() {
+  m_smsCount = 0;
+
+  if (!m_networkConnected) {
+    return 0;
+  }
+
+  String response = sendCommand("AT+CMGL=\"ALL\"", 5000);
+
+  // Parse +CMGL: <index> entries from response
+  int searchFrom = 0;
+  while (searchFrom < (int)response.length() && m_smsCount < MAX_SMS_SLOTS) {
+    int pos = response.indexOf("+CMGL: ", searchFrom);
+    if (pos < 0) {
+      break;
+    }
+
+    // Extract index number after "+CMGL: "
+    pos += 7;
+    int commaPos = response.indexOf(',', pos);
+    if (commaPos < 0) {
+      break;
+    }
+
+    String indexStr = response.substring(pos, commaPos);
+    indexStr.trim();
+    m_smsIndices[m_smsCount] = indexStr.toInt();
+    m_smsCount++;
+
+    searchFrom = commaPos + 1;
+  }
+
+  if (m_smsCount > 0) {
+    Serial.print(F("[MODEM] Found "));
+    Serial.print(m_smsCount);
+    Serial.println(F(" SMS message(s)"));
+  }
+
+  return m_smsCount;
+}
+
+int ModemHandler::getSMSIndex(int position) const {
+  if (position < 0 || position >= m_smsCount) {
+    return -1;
+  }
+  return m_smsIndices[position];
+}
+
+bool ModemHandler::readSMS(int index, ReceivedSMS& sms) {
+  if (!m_networkConnected) {
+    return false;
+  }
+
+  char cmd[20];
+  snprintf(cmd, sizeof(cmd), "AT+CMGR=%d", index);
+  String response = sendCommand(cmd, 3000);
+
+  // Find +CMGR: header
+  int headerPos = response.indexOf("+CMGR:");
+  if (headerPos < 0) {
+    Serial.println(F("[MODEM] No +CMGR header in response"));
+    return false;
+  }
+
+  sms.index = index;
+
+  // Parse quoted fields: +CMGR: "status","sender","name","timestamp"
+  // 1st quoted field: status
+  int quoteStart = response.indexOf('"', headerPos);
+  if (quoteStart < 0) return false;
+  int quoteEnd = response.indexOf('"', quoteStart + 1);
+  if (quoteEnd < 0) return false;
+
+  // 2nd quoted field: sender number
+  quoteStart = response.indexOf('"', quoteEnd + 1);
+  if (quoteStart < 0) return false;
+  quoteEnd = response.indexOf('"', quoteStart + 1);
+  if (quoteEnd < 0) return false;
+  sms.sender = response.substring(quoteStart + 1, quoteEnd);
+
+  // 3rd quoted field: phonebook name (usually empty)
+  quoteStart = response.indexOf('"', quoteEnd + 1);
+  if (quoteStart >= 0) {
+    quoteEnd = response.indexOf('"', quoteStart + 1);
+  }
+
+  // 4th quoted field: timestamp
+  if (quoteEnd >= 0) {
+    quoteStart = response.indexOf('"', quoteEnd + 1);
+    if (quoteStart >= 0) {
+      quoteEnd = response.indexOf('"', quoteStart + 1);
+      if (quoteEnd >= 0) {
+        sms.timestamp = response.substring(quoteStart + 1, quoteEnd);
+      }
+    }
+  }
+
+  // Message body: line after +CMGR header, before OK
+  int headerEnd = response.indexOf('\n', headerPos);
+  if (headerEnd < 0) return false;
+
+  int okPos = response.lastIndexOf("OK");
+  if (okPos > headerEnd) {
+    sms.message = response.substring(headerEnd + 1, okPos);
+  } else {
+    sms.message = response.substring(headerEnd + 1);
+  }
+  sms.message.trim();
+
+  Serial.print(F("[MODEM] SMS #"));
+  Serial.print(index);
+  Serial.print(F(" from: "));
+  Serial.print(sms.sender);
+  Serial.print(F(" msg: '"));
+  Serial.print(sms.message);
+  Serial.println(F("'"));
+
+  return true;
+}
+
+bool ModemHandler::deleteSMS(int index) {
+  char cmd[20];
+  snprintf(cmd, sizeof(cmd), "AT+CMGD=%d", index);
+  String response = sendCommand(cmd, 3000);
+  bool success = response.indexOf("OK") >= 0;
+
+  if (success) {
+    Serial.print(F("[MODEM] Deleted SMS #"));
+    Serial.println(index);
+  } else {
+    Serial.print(F("[MODEM] Failed to delete SMS #"));
+    Serial.println(index);
+  }
+
+  return success;
+}
+
+bool ModemHandler::deleteAllSMS() {
+  String response = sendCommand("AT+CMGD=1,4", 5000);
+  bool success = response.indexOf("OK") >= 0;
+
+  if (success) {
+    Serial.println(F("[MODEM] Deleted all SMS messages"));
+    m_smsCount = 0;
+  } else {
+    Serial.println(F("[MODEM] Failed to delete all SMS"));
   }
 
   return success;

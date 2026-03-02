@@ -9,7 +9,8 @@
 #include "SystemController.h"
 #include "Config.h"
 
-SystemController::SystemController() {
+SystemController::SystemController()
+  : m_lastSMSCheck(0) {
 }
 
 void SystemController::begin() {
@@ -41,10 +42,11 @@ void SystemController::begin() {
 void SystemController::loop() {
   m_modem.loop();
 
+  unsigned long now = millis();
+
   // Reed switch test: print door status and drive relay
   static unsigned long lastPrint = 0;
   static int lastState = -1;
-  unsigned long now = millis();
 
   int state = digitalRead(PIN_DOOR_SENSOR);
 
@@ -66,5 +68,29 @@ void SystemController::loop() {
     Serial.print(state == LOW ? "CLOSED" : "OPEN");
     Serial.print(F(" | relay "));
     Serial.println(state == HIGH ? "ON" : "OFF");
+  }
+
+  // SMS polling: check for incoming messages
+  if (m_modem.isNetworkConnected() && now - m_lastSMSCheck >= SMS_POLL_INTERVAL_MS) {
+    m_lastSMSCheck = now;
+
+    int count = m_modem.checkForSMS();
+    for (int i = 0; i < count; i++) {
+      ReceivedSMS sms;
+      int idx = m_modem.getSMSIndex(i);
+      if (m_modem.readSMS(idx, sms)) {
+        Serial.print(F("[SYS] === SMS RECEIVED ==="));
+        Serial.print(F("\n  From: "));
+        Serial.print(sms.sender);
+        Serial.print(F("\n  Time: "));
+        Serial.print(sms.timestamp);
+        Serial.print(F("\n  Body: '"));
+        Serial.print(sms.message);
+        Serial.println(F("'"));
+
+        // Delete after reading to prevent SIM storage from filling up
+        m_modem.deleteSMS(idx);
+      }
+    }
   }
 }

@@ -28,4 +28,5 @@ public:
 
 private:
   ModemHandler m_modem;
+  unsigned long m_lastSMSCheck;
 };
