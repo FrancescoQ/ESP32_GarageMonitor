@@ -37,12 +37,12 @@ const long SIM_BAUD_RATE = 115200;
 
 // SIM card PIN (set to "" if PIN lock is disabled)
 // IMPORTANT: Replace with your actual SIM PIN before flashing!
-const char* SIM_PIN = "1234";
+const char* const SIM_PIN = "1234";
 
 // ============================================================================
 // Door Sensor (Reed Switch)
 // ============================================================================
-const int PIN_DOOR_SENSOR = 34;  // INPUT only pin, use external pullup
+const int PIN_DOOR_SENSOR = 5;  // INPUT_PULLUP, no external resistor needed
 
 // ============================================================================
 // Water Sensor (XKC-Y25)
