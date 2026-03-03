@@ -5,9 +5,6 @@
  * Parses incoming SMS messages, verifies sender against an
  * allowlist, and checks granular permissions before allowing
  * command execution.
- *
- * @author Francesco
- * @date February 2026
  */
 
 #pragma once

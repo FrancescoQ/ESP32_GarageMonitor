@@ -1,9 +1,6 @@
 /**
  * @file DoorController.cpp
  * @brief Relay-based door actuation implementation
- *
- * @author Francesco
- * @date March 2026
  */
 
 #include "DoorController.h"

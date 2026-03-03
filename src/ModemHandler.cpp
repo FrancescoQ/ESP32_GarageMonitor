@@ -5,9 +5,6 @@
  * Extracted from main.cpp diagnostic sketch. Handles the full modem
  * lifecycle: PWRKEY power-on, SIM PIN unlock, TinyGSM initialization,
  * network registration, and periodic signal monitoring.
- *
- * @author Francesco
- * @date February 2026
  */
 
 #include "ModemHandler.h"

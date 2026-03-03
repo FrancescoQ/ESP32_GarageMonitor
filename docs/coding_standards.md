@@ -247,9 +247,6 @@ Every source file should have a header comment:
  *
  * Manages state machine, coordinates subsystems, and handles
  * lifecycle for the garage monitoring system.
- *
- * @author Francesco
- * @date February 2026
  */
 ```
 

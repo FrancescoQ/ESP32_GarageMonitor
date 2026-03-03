@@ -1,9 +1,6 @@
 /**
  * @file DoorSensor.cpp
  * @brief Reed switch door monitoring implementation
- *
- * @author Francesco
- * @date February 2026
  */
 
 #include "DoorSensor.h"

@@ -6,9 +6,6 @@
  * are forced OFF at begin() (fail-safe boot — see docs/safety.md).
  * Actuation uses a blocking pulse: RELAY_ON for RELAY_PULSE_MS,
  * then RELAY_OFF.
- *
- * @author Francesco
- * @date March 2026
  */
 
 #pragma once

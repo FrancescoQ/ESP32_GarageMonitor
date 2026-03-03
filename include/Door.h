@@ -5,9 +5,6 @@
  * Composes DoorSensor (reed switch monitoring) and DoorController
  * (relay actuation) behind a single interface so SystemController
  * can call m_door.isOpen(), m_door.close(), etc.
- *
- * @author Francesco
- * @date March 2026
  */
 
 #pragma once

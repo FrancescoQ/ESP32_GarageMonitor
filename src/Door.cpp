@@ -1,9 +1,6 @@
 /**
  * @file Door.cpp
  * @brief Unified door facade implementation
- *
- * @author Francesco
- * @date March 2026
  */
 
 #include "Door.h"

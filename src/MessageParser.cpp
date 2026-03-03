@@ -1,9 +1,6 @@
 /**
  * @file MessageParser.cpp
  * @brief SMS command parsing and authorization implementation
- *
- * @author Francesco
- * @date February 2026
  */
 
 #include "MessageParser.h"

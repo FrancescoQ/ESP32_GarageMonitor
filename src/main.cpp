@@ -3,9 +3,6 @@
  * @brief Garage monitoring system entry point
  *
  * Minimal main file - all logic delegated to SystemController.
- *
- * @author Francesco
- * @date February 2026
  */
 
 #include <Arduino.h>

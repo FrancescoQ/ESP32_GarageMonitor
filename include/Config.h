@@ -9,9 +9,6 @@
  *
  * Sensitive data (SIM PIN, phone numbers) lives in Secrets.h,
  * which is gitignored. See Secrets.h.example for the template.
- *
- * @author Francesco
- * @date February 2026
  */
 
 // Sensitive configuration (SIM PIN, authorized numbers)

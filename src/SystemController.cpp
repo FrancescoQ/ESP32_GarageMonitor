@@ -1,9 +1,6 @@
 /**
  * @file SystemController.cpp
  * @brief Main system coordinator implementation
- *
- * @author Francesco
- * @date February 2026
  */
 
 #include "SystemController.h"

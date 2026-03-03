@@ -4,9 +4,6 @@
  *
  * Encapsulates power-on sequence, SIM PIN unlock, TinyGSM initialization,
  * network registration, and periodic signal monitoring.
- *
- * @author Francesco
- * @date February 2026
  */
 
 #pragma once

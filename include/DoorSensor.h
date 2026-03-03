@@ -5,9 +5,6 @@
  * Reads a reed switch via INPUT_PULLUP GPIO and provides
  * debounced open/closed state, state-change detection,
  * open-duration tracking, and an optional callback.
- *
- * @author Francesco
- * @date February 2026
  */
 
 #pragma once
