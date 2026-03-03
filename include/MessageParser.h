@@ -23,8 +23,9 @@ enum Permission {
 };
 
 // Permission presets
-const uint8_t PERM_ADMIN   = PERM_STATUS | PERM_CLOSE | PERM_OPEN | PERM_CONFIG;
-const uint8_t PERM_CONTROL = PERM_STATUS | PERM_CLOSE;
+const uint8_t PERM_ADMIN = PERM_STATUS | PERM_CLOSE | PERM_OPEN | PERM_CONFIG;
+const uint8_t PERM_CONTROL_FULL = PERM_STATUS | PERM_CLOSE | PERM_OPEN;
+const uint8_t PERM_CONTROL_MIN = PERM_STATUS | PERM_CLOSE;
 const uint8_t PERM_MONITOR = PERM_STATUS;
 
 // ============================================================================
