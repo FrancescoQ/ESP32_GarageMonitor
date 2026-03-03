@@ -105,9 +105,21 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
       m_modem.sendSMS(sms.sender.c_str(), reply.c_str());
       break;
     }
-    default:
-      Serial.print(F("[SYS] Command not yet implemented: "));
-      Serial.println(static_cast<int>(result.command));
+    case SMSCommand::CLOSE:
+      Serial.println(F("[SYS] Executing CLOSE command"));
+      m_door.close();
+      m_modem.sendSMS(sms.sender.c_str(), "Closing garage door.");
+      break;
+
+    case SMSCommand::OPEN:
+      Serial.println(F("[SYS] Executing OPEN command"));
+      m_door.open();
+      m_modem.sendSMS(sms.sender.c_str(), "Opening garage door.");
+      break;
+
+    case SMSCommand::UNKNOWN:
+      Serial.println(F("[SYS] Unknown command received"));
+      m_modem.sendSMS(sms.sender.c_str(), "Unknown command. Try: STATUS, CLOSE, OPEN");
       break;
   }
 }
