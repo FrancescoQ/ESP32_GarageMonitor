@@ -22,10 +22,14 @@ void DoorController::begin() {
 }
 
 void DoorController::close() {
+  stop();
+  delay(RELAY_SEQUENCE_DELAY_MS);
   pulse(PIN_RELAY_CLOSE, "CLOSE");
 }
 
 void DoorController::open() {
+  stop();
+  delay(RELAY_SEQUENCE_DELAY_MS);
   pulse(PIN_RELAY_OPEN, "OPEN");
 }
 

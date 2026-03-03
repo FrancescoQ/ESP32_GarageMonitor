@@ -53,16 +53,13 @@ void SystemController::loop() {
   }
 
   // Door open too long alert (single alert per open event)
-  if (doorOpen && !m_alertSent &&
-      m_door.getOpenDurationMs() >= DOOR_ALERT_DELAY_MS) {
-    unsigned long delayMin = DOOR_ALERT_DELAY_MS / 60000;
+  if (doorOpen && !m_alertSent && m_door.getOpenDurationMs() >= DOOR_ALERT_DELAY_MS) {
     Serial.print(F("[SYS] Door open >"));
-    Serial.print(delayMin);
+    Serial.print(DOOR_ALERT_DELAY_MIN);
     Serial.println(F("min — sending alert"));
     m_alertSent = true;
     char alertMsg[64];
-    snprintf(alertMsg, sizeof(alertMsg),
-             "ALERT: Garage door still open after %lu minutes", delayMin);
+    snprintf(alertMsg, sizeof(alertMsg), "ALERT: Garage door still open after %lu minutes", DOOR_ALERT_DELAY_MIN);
     notifyAdmins(alertMsg);
   }
 
@@ -121,6 +118,12 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
   Serial.print(F("[SYS] Authorized user: "));
   Serial.println(result.userName);
 
+  // Ignore unrecognized commands before permission check
+  if (result.command == SMSCommand::UNKNOWN) {
+    Serial.println(F("[SYS] Unknown command, ignoring"));
+    return;
+  }
+
   if (!result.hasPermission) {
     Serial.println(F("[SYS] Permission denied for command"));
     m_modem.sendSMS(sms.sender.c_str(), "Permission denied.");
@@ -148,9 +151,7 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
       break;
 
     case SMSCommand::UNKNOWN:
-      Serial.println(F("[SYS] Unknown command received"));
-      // Don't waste SMS.
-      //m_modem.sendSMS(sms.sender.c_str(), "Unknown command. Try: STATUS, CLOSE, OPEN");
+      // Unreachable — handled above, but keeps compiler happy
       break;
   }
 }
