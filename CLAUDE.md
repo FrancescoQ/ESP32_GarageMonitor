@@ -34,7 +34,7 @@ For detailed information, see the following resources:
 IoT-based garage monitoring system with SMS remote control for monitoring door status, environmental conditions, and flood detection. Designed for deployment in a garage in the Venice area with remote SMS-based control.
 
 ### Core Hardware
-- **Controller**: ESP32-C3 DevKit M-1
+- **Controller**: ESP32 DevKit
 - **Cellular**: SIM7000G module (Iliad Domotica SIM plan)
 - **Display**: LCD 16x2 with I2C interface
 - **Sensors**:
@@ -235,7 +235,7 @@ GPIO:
 ### PlatformIO Configuration
 ```ini
 platform = espressif32
-board = esp32-c3-devkitm-1
+board = esp32dev
 framework = arduino
 monitor_speed = 115200
 monitor_filters = colorize, esp32_exception_decoder

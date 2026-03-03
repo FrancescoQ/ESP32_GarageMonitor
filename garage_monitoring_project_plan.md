@@ -54,7 +54,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - Singleton for communication manager
 
 **Testing:**
-- Basic ESP32-C3 boot and LCD "Hello World"
+- Basic ESP32 boot and LCD "Hello World"
 - UART communication test
 - GPIO test with LED
 
@@ -123,7 +123,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - [ ] System handles near-full SMS storage gracefully
 
 **Hardware Setup:**
-- ESP32-C3 dev board
+- ESP32 dev board
 - SIM7000G module with antenna
 - Reed switch with jumper cables
 - Breadboard or flying wires
@@ -303,14 +303,14 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - Prove core functionality
 
 **Setup:**
-- ESP32-C3 dev board on breadboard or standalone
+- ESP32 dev board on breadboard or standalone
 - SIM7000G connected via jumper cables
 - Reed switch with pull-up resistor
 - Antenna connected
 - USB-C power supply
 
 **Tests:**
-- [ ] ESP32-C3 boots and LCD shows "Hello World"
+- [ ] ESP32 boots and LCD shows "Hello World"
 - [ ] SIM7000G initializes and registers on network
 - [ ] Send test SMS successfully
 - [ ] Receive SMS successfully
@@ -366,7 +366,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 **Main Control Box Requirements:**
 - Weatherproof rating (IP54 minimum)
-- Accommodate ESP32-C3, SIM7000G, BME280, LCD 16x2
+- Accommodate ESP32, SIM7000G, BME280, LCD 16x2
 - Panel mounts for:
   - GX12-3 or GX16-4 aviation connector (sensors)
   - USB-C panel mount (power)
@@ -446,7 +446,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 **Assembly Steps:**
 
 1. **Control Box Assembly:**
-   - Mount ESP32-C3 in enclosure
+   - Mount ESP32 in enclosure
    - Mount SIM7000G with proper spacing
    - Mount BME280 (ventilated position)
    - Install panel-mount connectors
@@ -489,7 +489,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 ## Development Tools & Resources
 
 **Hardware:**
-- ESP32-C3 dev board (standard, without integrated display)
+- ESP32 dev board (standard, without integrated display)
 - LCD 16x2 with I2C interface (already available)
 - SIM7000G module + antenna
 - BME280 or DHT22 sensor
@@ -511,7 +511,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 **Documentation:**
 - SIM7000G AT command manual
-- ESP32-C3 datasheet
+- ESP32 datasheet
 - Sensor datasheets
 - Connector pinouts
 
