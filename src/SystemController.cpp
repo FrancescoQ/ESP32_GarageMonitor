@@ -10,7 +10,7 @@
 #include "Config.h"
 
 SystemController::SystemController()
-  : m_lastSMSCheck(0) {
+  : m_lastSMSCheck(0), m_alertSent(false), m_doorWasOpen(false) {
 }
 
 void SystemController::begin() {
@@ -20,6 +20,7 @@ void SystemController::begin() {
 
   // Door subsystem (relays fail-safe OFF, then sensor init)
   m_door.begin();
+  m_doorWasOpen = m_door.isOpen();
 
   // Modem
   if (m_modem.begin()) {
@@ -65,6 +66,8 @@ void SystemController::loop() {
         Serial.print(sms.message);
         Serial.println(F("'"));
 
+        handleSMS(sms);
+
         // Delete after reading to prevent SIM storage from filling up
         if (!m_modem.deleteSMS(idx)) {
           Serial.print(F("[SYS] Retrying delete for SMS #"));
@@ -74,4 +77,37 @@ void SystemController::loop() {
       }
     }
   }
+}
+
+void SystemController::handleSMS(const ReceivedSMS& sms) {
+  ParseResult result = m_parser.parse(sms.sender, sms.message);
+
+  if (!result.isAuthorized) {
+    Serial.print(F("[SYS] Unauthorized sender: "));
+    Serial.println(sms.sender);
+    return;
+  }
+
+  Serial.print(F("[SYS] Authorized user: "));
+  Serial.println(result.userName);
+
+  if (!result.hasPermission) {
+    Serial.println(F("[SYS] Permission denied for command"));
+    m_modem.sendSMS(sms.sender.c_str(), "Permission denied.");
+    return;
+  }
+
+  // Command dispatch placeholder — filled in by subsequent commits
+  Serial.print(F("[SYS] Command authorized: "));
+  Serial.println(static_cast<int>(result.command));
+}
+
+void SystemController::notifyAdmins(const char* message) {
+  // Placeholder — implemented in commit 4
+  (void)message;
+}
+
+String SystemController::buildStatusReply() {
+  // Placeholder — implemented in commit 2
+  return String(F("Status not yet implemented."));
 }
