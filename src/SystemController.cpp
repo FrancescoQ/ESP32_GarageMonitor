@@ -36,6 +36,20 @@ void SystemController::loop() {
   m_door.loop();
   m_modem.loop();
 
+  // Door state change detection
+  bool doorOpen = m_door.isOpen();
+  if (doorOpen != m_doorWasOpen) {
+    m_doorWasOpen = doorOpen;
+    if (doorOpen) {
+      Serial.println(F("[SYS] Door opened — notifying admins"));
+      m_alertSent = false;
+      notifyAdmins("Garage door OPEN");
+    } else {
+      Serial.println(F("[SYS] Door closed — notifying admins"));
+      notifyAdmins("Garage door CLOSED");
+    }
+  }
+
   unsigned long now = millis();
 
   // SMS polling: check for incoming messages
@@ -125,8 +139,15 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
 }
 
 void SystemController::notifyAdmins(const char* message) {
-  // Placeholder — implemented in commit 4
-  (void)message;
+  for (int i = 0; AUTHORIZED_USERS[i].number != nullptr; i++) {
+    if (AUTHORIZED_USERS[i].permissions & PERM_CONFIG) {
+      Serial.print(F("[SYS] Notifying "));
+      Serial.print(AUTHORIZED_USERS[i].name);
+      Serial.print(F(": "));
+      Serial.println(message);
+      m_modem.sendSMS(AUTHORIZED_USERS[i].number, message);
+    }
+  }
 }
 
 String SystemController::buildStatusReply() {
