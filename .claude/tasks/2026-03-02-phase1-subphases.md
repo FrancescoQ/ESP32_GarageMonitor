@@ -53,10 +53,11 @@ struct ReceivedSMS {
   String timestamp;
 };
 
-int checkForSMS();                          // AT+CMGL="ALL", returns count
-bool readSMS(int index, ReceivedSMS& sms);  // AT+CMGR=<index>
+int checkForSMS();                          // AT+CMGL="REC UNREAD", returns count
+bool readSMS(int index, ReceivedSMS& sms);  // AT+CMGR=<index> (marks as read)
 bool deleteSMS(int index);                  // AT+CMGD=<index>
-bool deleteAllSMS();                        // AT+CMGD=1,4
+bool deleteReadSMS();                       // AT+CMGD=1,1 (batch delete read)
+bool deleteAllSMS();                        // AT+CMGD=1,4 (emergency purge)
 ```
 
 **AT response formats to parse** (text mode, already enabled):
@@ -210,10 +211,10 @@ bool deleteAllSMS();                        // AT+CMGD=1,4
 | Sub-Phase | What | Risk | New Files | Effort | Status |
 |-----------|------|------|-----------|--------|--------|
 | **1A** | SMS Receive (AT commands) | **High** | — | 2-3h | ✅ Done |
-| **1B** | DoorSensor class (refactor) | Low | DoorSensor.h/cpp | 1-2h | 🔲 |
-| **1C** | MessageParser + permissions | Medium | MessageParser.h/cpp, AuthConfig.h | 2-3h | 🔲 |
+| **1B** | DoorSensor class (refactor) | Low | DoorSensor.h/cpp | 1-2h | ✅ Done |
+| **1C** | MessageParser + permissions | Medium | MessageParser.h/cpp | 2-3h | ✅ Done |
 | **1D** | DisplayController (LCD) | Low | DisplayController.h/cpp | 1-2h | 🔲 |
-| **1E** | Integration + state machine | Medium | — | 3-4h | 🔲 |
+| **1E** | Integration + state machine | Medium | — | 3-4h | ✅ Done |
 
 **Recommended order**: 1A → 1B → 1C → 1D → 1E
 
@@ -233,13 +234,49 @@ Each sub-phase leaves the system in a working state and can be tested independen
 - Messages printed to Serial and deleted from SIM after reading
 - **Ready for hardware testing**: Send SMS from phone → should appear on Serial monitor → auto-deleted from SIM
 
+### 2026-03-03: Sub-Phases 1B, 1C, 1E Complete + SMS Hardening
+
+**SMS hardening** (ModemHandler + SystemController):
+- Changed `AT+CMGL="ALL"` → `AT+CMGL="REC UNREAD"` to prevent reprocessing
+  already-read SMS when `deleteSMS()` fails
+- Added `deleteReadSMS()` using `AT+CMGD=1,1` (batch-delete all read messages)
+- Replaced per-message `deleteSMS(idx)` + retry with single `deleteReadSMS()`
+  call after processing loop (N delete commands → 1)
+- `deleteAllSMS()` (flag 4) kept for safety-net purge threshold
+
+**Unknown command fix** (SystemController):
+- Unknown commands now checked before permission check
+- Previously an admin sending "STOP" got "Permission denied" because
+  `requiredPermission(UNKNOWN)` returns 0, which always fails permission check
+- Now: unknown commands are silently ignored (log only, no SMS wasted)
+- "Permission denied" only sent for real commands the user lacks access to
+
+**Door control sequence** (DoorController):
+- `close()` and `open()` now do STOP → 500ms pause → CLOSE/OPEN
+- Added `RELAY_SEQUENCE_DELAY_MS` constant in Config.h (tunable)
+- `close()`/`open()` delegate to `stop()` method instead of calling `pulse()` directly
+- Wiring note: STP relay uses COM+NC, SWO/SWC relays use COM+NO (Benincà ZED.24SC)
+
+**Dynamic alert messages** (SystemController + Config.h):
+- Added `DOOR_ALERT_DELAY_MIN` constant (user set to 30 min)
+- Serial log and SMS alert text derive minutes from config automatically
+- `DOOR_ALERT_DELAY_MS` computed from `DOOR_ALERT_DELAY_MIN * 60 * 1000`
+
+**Documentation fixes**:
+- Updated all ESP32-C3 references → ESP32 in CLAUDE.md and project plan
+- `platformio.ini` already had `board = esp32dev`
+
+**Phase 1 status**: 1D (DisplayController) is the only remaining sub-phase.
+All core functionality (door monitoring, SMS command loop, authorization,
+relay control) is working and hardware-tested.
+
 ---
 
 ## Future Improvements
 
 ### SMS Reception: Polling → URC Notifications (Phase 4)
 
-Current approach polls with `AT+CMGL="ALL"` every 5 seconds. This works but is wasteful — the modem and UART are busy even when no SMS has arrived, which conflicts with Phase 4 deep sleep goals.
+Current approach polls with `AT+CMGL="REC UNREAD"` every 5 seconds. This works but is wasteful — the modem and UART are busy even when no SMS has arrived, which conflicts with Phase 4 deep sleep goals.
 
 **Better approaches to evaluate in Phase 4:**
 1. **URC-based notification** (`AT+CNMI=2,1`): SIM7000G sends an unsolicited `+CMTI` notification the instant an SMS arrives. No polling needed — just listen for the URC on the serial line. Much more efficient for power management.
@@ -249,6 +286,27 @@ Current approach polls with `AT+CMGL="ALL"` every 5 seconds. This works but is w
 - [ ] Test `AT+CNMI=2,1` URC notification and parse `+CMTI: "SM",<index>` response
 - [ ] Assign RI pin GPIO in `Config.h` and test hardware interrupt wake from deep sleep
 - [ ] Evaluate whether polling can be eliminated entirely or kept as fallback
+
+### Multilingual SMS Support (Command Aliases + Localized Responses)
+
+Two features to support Italian-speaking users (e.g., family members):
+
+**Command aliases** — allow commands in multiple languages. Minimal change
+in `MessageParser::parseCommand()`:
+```cpp
+if (trimmed == "OPEN" || trimmed == "APRI") return SMSCommand::OPEN;
+if (trimmed == "CLOSE" || trimmed == "CHIUDI") return SMSCommand::CLOSE;
+if (trimmed == "STATUS" || trimmed == "STATO") return SMSCommand::STATUS;
+```
+
+**Localized response phrases** — send SMS replies in the user's preferred
+language. Two possible approaches:
+1. **Simple `Phrases.h`** — string constants per language, a `language` field
+   on `AuthorizedUser`, pick the right string when sending replies.
+2. **`getPhrase(PhraseID, Language)` function** — centralizes all translations
+   in one place, easier to maintain as phrases grow.
+
+Both allow per-user language preference (Francesco → EN, Papà → IT).
 
 ### Architecture: SMS Functions in ModemHandler (Post-Phase 1 Review)
 

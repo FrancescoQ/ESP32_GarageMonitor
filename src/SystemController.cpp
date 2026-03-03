@@ -43,8 +43,8 @@ void SystemController::loop() {
     if (doorOpen) {
       Serial.println(F("[SYS] Door opened."));
       m_alertSent = false;
-
-      //notifyAdmins("Garage door OPEN");
+      // Don't notify on every state change, it's a waste of SMS.
+      // notifyAdmins("Garage door OPEN");
     } else {
       Serial.println(F("[SYS] Door closed."));
       // Don't notify on every state change, it's a waste of SMS.
