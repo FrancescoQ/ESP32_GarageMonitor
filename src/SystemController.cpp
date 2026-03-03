@@ -97,9 +97,19 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
     return;
   }
 
-  // Command dispatch placeholder — filled in by subsequent commits
-  Serial.print(F("[SYS] Command authorized: "));
-  Serial.println(static_cast<int>(result.command));
+  switch (result.command) {
+    case SMSCommand::STATUS: {
+      String reply = buildStatusReply();
+      Serial.print(F("[SYS] STATUS reply: "));
+      Serial.println(reply);
+      m_modem.sendSMS(sms.sender.c_str(), reply.c_str());
+      break;
+    }
+    default:
+      Serial.print(F("[SYS] Command not yet implemented: "));
+      Serial.println(static_cast<int>(result.command));
+      break;
+  }
 }
 
 void SystemController::notifyAdmins(const char* message) {
@@ -108,6 +118,20 @@ void SystemController::notifyAdmins(const char* message) {
 }
 
 String SystemController::buildStatusReply() {
-  // Placeholder — implemented in commit 2
-  return String(F("Status not yet implemented."));
+  String reply;
+
+  // Door state
+  if (m_door.isOpen()) {
+    unsigned long openMs = m_door.getOpenDurationMs();
+    unsigned long openMin = openMs / 60000;
+    reply = "Door: OPEN (" + String(openMin) + "min)";
+  } else {
+    reply = "Door: CLOSED";
+  }
+
+  // Signal quality
+  int16_t csq = m_modem.getSignalQuality();
+  reply += " | CSQ: " + String(csq) + "/31";
+
+  return reply;
 }
