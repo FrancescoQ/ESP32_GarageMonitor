@@ -41,21 +41,29 @@ void SystemController::loop() {
   if (doorOpen != m_doorWasOpen) {
     m_doorWasOpen = doorOpen;
     if (doorOpen) {
-      Serial.println(F("[SYS] Door opened — notifying admins"));
+      Serial.println(F("[SYS] Door opened."));
       m_alertSent = false;
-      notifyAdmins("Garage door OPEN");
+
+      //notifyAdmins("Garage door OPEN");
     } else {
-      Serial.println(F("[SYS] Door closed — notifying admins"));
-      notifyAdmins("Garage door CLOSED");
+      Serial.println(F("[SYS] Door closed."));
+      // Don't notify on every state change, it's a waste of SMS.
+      // notifyAdmins("Garage door CLOSED");
     }
   }
 
   // Door open too long alert (single alert per open event)
   if (doorOpen && !m_alertSent &&
       m_door.getOpenDurationMs() >= DOOR_ALERT_DELAY_MS) {
-    Serial.println(F("[SYS] Door open >5min — sending alert"));
+    unsigned long delayMin = DOOR_ALERT_DELAY_MS / 60000;
+    Serial.print(F("[SYS] Door open >"));
+    Serial.print(delayMin);
+    Serial.println(F("min — sending alert"));
     m_alertSent = true;
-    notifyAdmins("ALERT: Garage door still open after 5 minutes");
+    char alertMsg[64];
+    snprintf(alertMsg, sizeof(alertMsg),
+             "ALERT: Garage door still open after %lu minutes", delayMin);
+    notifyAdmins(alertMsg);
   }
 
   unsigned long now = millis();
@@ -141,7 +149,8 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
 
     case SMSCommand::UNKNOWN:
       Serial.println(F("[SYS] Unknown command received"));
-      m_modem.sendSMS(sms.sender.c_str(), "Unknown command. Try: STATUS, CLOSE, OPEN");
+      // Don't waste SMS.
+      //m_modem.sendSMS(sms.sender.c_str(), "Unknown command. Try: STATUS, CLOSE, OPEN");
       break;
   }
 }
