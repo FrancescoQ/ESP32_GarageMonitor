@@ -50,6 +50,14 @@ void SystemController::loop() {
     }
   }
 
+  // Door open too long alert (single alert per open event)
+  if (doorOpen && !m_alertSent &&
+      m_door.getOpenDurationMs() >= DOOR_ALERT_DELAY_MS) {
+    Serial.println(F("[SYS] Door open >5min — sending alert"));
+    m_alertSent = true;
+    notifyAdmins("ALERT: Garage door still open after 5 minutes");
+  }
+
   unsigned long now = millis();
 
   // SMS polling: check for incoming messages
