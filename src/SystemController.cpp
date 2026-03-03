@@ -7,7 +7,7 @@
 #include "Config.h"
 
 SystemController::SystemController()
-  : m_lastSMSCheck(0), m_alertSent(false), m_doorWasOpen(false) {
+  : m_buttons(m_door), m_lastSMSCheck(0), m_alertSent(false), m_doorWasOpen(false) {
 }
 
 void SystemController::begin() {
@@ -18,6 +18,12 @@ void SystemController::begin() {
   // Door subsystem (relays fail-safe OFF, then sensor init)
   m_door.begin();
   m_doorWasOpen = m_door.isOpen();
+
+  // Water sensor
+  m_water.begin();
+
+  // Manual control buttons
+  m_buttons.begin();
 
   // Modem
   if (m_modem.begin()) {
@@ -31,7 +37,9 @@ void SystemController::begin() {
 
 void SystemController::loop() {
   m_door.loop();
+  m_water.loop();
   m_modem.loop();
+  m_buttons.loop();
 
   // Door state change detection
   bool doorOpen = m_door.isOpen();
@@ -58,6 +66,17 @@ void SystemController::loop() {
     char alertMsg[64];
     snprintf(alertMsg, sizeof(alertMsg), "ALERT: Garage door still open after %lu minutes", DOOR_ALERT_DELAY_MIN);
     notifyAdmins(alertMsg);
+  }
+
+  // Water detection — immediate alert to all users
+  if (m_water.hasStateChanged()) {
+    if (m_water.isWaterDetected()) {
+      Serial.println(F("[SYS] Water detected — alerting all users"));
+      notifyAllUsers("ALERT: Water detected in garage!");
+    } else {
+      Serial.println(F("[SYS] Water cleared — notifying all users"));
+      notifyAllUsers("Water no longer detected.");
+    }
   }
 
   unsigned long now = millis();
@@ -165,6 +184,16 @@ void SystemController::notifyAdmins(const char* message) {
   }
 }
 
+void SystemController::notifyAllUsers(const char* message) {
+  for (int i = 0; AUTHORIZED_USERS[i].number != nullptr; i++) {
+    Serial.print(F("[SYS] Notifying "));
+    Serial.print(AUTHORIZED_USERS[i].name);
+    Serial.print(F(": "));
+    Serial.println(message);
+    m_modem.sendSMS(AUTHORIZED_USERS[i].number, message);
+  }
+}
+
 String SystemController::buildStatusReply() {
   String reply;
 
@@ -176,6 +205,9 @@ String SystemController::buildStatusReply() {
   } else {
     reply = "Door: CLOSED";
   }
+
+  // Water state
+  reply += m_water.isWaterDetected() ? " | Water: ALERT" : " | Water: OK";
 
   // Signal quality
   int16_t csq = m_modem.getSignalQuality();
