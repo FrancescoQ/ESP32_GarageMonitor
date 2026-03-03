@@ -222,6 +222,7 @@ GPIO:
 - **Hardware abstraction**: Don't access hardware directly from main logic
 - **State-driven**: Use state machine for system behavior
 - **Security first**: Always verify SMS sender before command execution
+- **Relay safety**: Relays must NEVER activate without explicit user action — see @docs/safety.md
 - **Simplicity**: Don't over-engineer - solve real problems first
 
 ### Testing Strategy

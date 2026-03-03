@@ -18,21 +18,8 @@ void SystemController::begin() {
   Serial.println(F("  Garage Monitor - Starting"));
   Serial.println(F("========================================\n"));
 
-  // Door sensor
-  m_doorSensor.begin();
-  m_doorSensor.onStateChange([](bool doorOpen) {
-    digitalWrite(PIN_RELAY_CLOSE, doorOpen ? RELAY_ON : RELAY_OFF);
-    Serial.print(F("[DOOR] "));
-    Serial.print(doorOpen ? F("OPEN") : F("CLOSED"));
-    Serial.print(F(" -> relay "));
-    Serial.println(doorOpen ? F("ON") : F("OFF"));
-  });
-
-  // Relay setup
-  pinMode(PIN_RELAY_CLOSE, OUTPUT);
-  digitalWrite(PIN_RELAY_CLOSE, m_doorSensor.isDoorOpen() ? RELAY_ON : RELAY_OFF);
-  Serial.print(F("[RELAY] Close relay initialized on GPIO "));
-  Serial.println(PIN_RELAY_CLOSE);
+  // Door subsystem (relays fail-safe OFF, then sensor init)
+  m_door.begin();
 
   // Modem
   if (m_modem.begin()) {
@@ -45,7 +32,7 @@ void SystemController::begin() {
 }
 
 void SystemController::loop() {
-  m_doorSensor.loop();
+  m_door.loop();
   m_modem.loop();
 
   unsigned long now = millis();

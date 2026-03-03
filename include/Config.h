@@ -66,6 +66,7 @@ const int RELAY_OFF = RELAY_ACTIVE_LOW ? HIGH : LOW;
 // ============================================================================
 // Timing Constants
 // ============================================================================
+const unsigned long RELAY_PULSE_MS = 200;             // Momentary relay activation
 const unsigned long DOOR_DEBOUNCE_MS = 50;          // Reed switch debounce
 const unsigned long DOOR_ALERT_DELAY_MS = 300000;   // 5 min before door-open alert
 const unsigned long SENSOR_READ_INTERVAL_MS = 60000; // Read sensors every 60s
