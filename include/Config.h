@@ -61,6 +61,16 @@ const int RELAY_ON  = RELAY_ACTIVE_LOW ? LOW : HIGH;
 const int RELAY_OFF = RELAY_ACTIVE_LOW ? HIGH : LOW;
 
 // ============================================================================
+// Manual Control Buttons
+// ============================================================================
+const int PIN_BTN_CLOSE = 33;  // Manual close button (INPUT_PULLUP)
+const int PIN_BTN_OPEN  = 13;  // Manual open button (INPUT_PULLUP)
+const int PIN_BTN_STOP  = 14;  // Manual stop button (INPUT_PULLUP)
+const int PIN_BTN_FUNC  = 15;  // Multipurpose button (INPUT_PULLUP): display page, WiFi setup, reset
+
+const unsigned long BTN_DEBOUNCE_MS = 50;  // Button debounce time
+
+// ============================================================================
 // Timing Constants
 // ============================================================================
 const unsigned long RELAY_PULSE_MS = 200;             // Momentary relay activation
