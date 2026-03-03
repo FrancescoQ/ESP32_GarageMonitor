@@ -177,7 +177,7 @@ int ModemHandler::checkForSMS() {
     return 0;
   }
 
-  String response = sendCommand("AT+CMGL=\"ALL\"", 5000);
+  String response = sendCommand("AT+CMGL=\"REC UNREAD\"", 5000);
 
   // Parse +CMGL: <index> entries from response
   int searchFrom = 0;
@@ -309,6 +309,19 @@ bool ModemHandler::deleteSMS(int index) {
   } else {
     Serial.print(F("[MODEM] Failed to delete SMS #"));
     Serial.println(index);
+  }
+
+  return success;
+}
+
+bool ModemHandler::deleteReadSMS() {
+  String response = sendCommand("AT+CMGD=1,1", 5000);
+  bool success = response.indexOf("OK") >= 0;
+
+  if (success) {
+    Serial.println(F("[MODEM] Deleted all read SMS"));
+  } else {
+    Serial.println(F("[MODEM] Failed to delete read SMS"));
   }
 
   return success;

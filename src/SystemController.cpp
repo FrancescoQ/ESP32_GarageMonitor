@@ -75,6 +75,7 @@ void SystemController::loop() {
       return;
     }
 
+    int processed = 0;
     for (int i = 0; i < count; i++) {
       ReceivedSMS sms;
       int idx = m_modem.getSMSIndex(i);
@@ -89,14 +90,13 @@ void SystemController::loop() {
         Serial.println(F("'"));
 
         handleSMS(sms);
-
-        // Delete after reading to prevent SIM storage from filling up
-        if (!m_modem.deleteSMS(idx)) {
-          Serial.print(F("[SYS] Retrying delete for SMS #"));
-          Serial.println(idx);
-          m_modem.deleteSMS(idx);
-        }
+        processed++;
       }
+    }
+
+    // Batch-delete all read SMS in one AT command instead of per-message
+    if (processed > 0) {
+      m_modem.deleteReadSMS();
     }
   }
 }

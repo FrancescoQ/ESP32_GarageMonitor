@@ -85,7 +85,7 @@ public:
   /**
    * @brief Poll SIM storage for SMS messages
    *
-   * Sends AT+CMGL="ALL" and parses response to find stored SMS indices.
+   * Sends AT+CMGL="REC UNREAD" and parses response to find unread SMS indices.
    * Indices are stored internally and accessible via getSMSIndex().
    *
    * @return Number of SMS messages found (0 if none or error)
@@ -115,10 +115,21 @@ public:
   bool deleteSMS(int index);
 
   /**
+   * @brief Delete all read SMS from SIM storage
+   *
+   * Uses AT+CMGD=1,1 to delete all "received read" messages in one
+   * command. Unread messages are preserved. Call after processing a
+   * batch of SMS to keep SIM storage clean without per-message deletes.
+   *
+   * @return true if deletion succeeded
+   */
+  bool deleteReadSMS();
+
+  /**
    * @brief Delete all SMS from SIM storage
    *
-   * Uses AT+CMGD=1,4 to purge all messages. Use periodically
-   * to prevent SIM storage from filling up (silently drops new SMS).
+   * Uses AT+CMGD=1,4 to purge all messages. Use as a safety net
+   * when SIM storage is critically full (silently drops new SMS).
    *
    * @return true if deletion succeeded
    */
