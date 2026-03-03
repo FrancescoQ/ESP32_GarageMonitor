@@ -71,6 +71,7 @@ const unsigned long DOOR_ALERT_DELAY_MS = 300000;   // 5 min before door-open al
 const unsigned long SENSOR_READ_INTERVAL_MS = 60000; // Read sensors every 60s
 const unsigned long SMS_REPORT_INTERVAL_MS = 21600000; // Periodic report every 6h
 const unsigned long SMS_POLL_INTERVAL_MS = 5000;    // Poll for incoming SMS every 5s
+const int SMS_PURGE_THRESHOLD = 10;                 // Purge all SMS if count reaches this
 
 // ============================================================================
 // System

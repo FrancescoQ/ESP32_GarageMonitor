@@ -75,6 +75,16 @@ void SystemController::loop() {
     m_lastSMSCheck = now;
 
     int count = m_modem.checkForSMS();
+
+    // Safety net: if too many SMS accumulated, purge all and skip processing
+    if (count >= SMS_PURGE_THRESHOLD) {
+      Serial.print(F("[SYS] SMS count "));
+      Serial.print(count);
+      Serial.println(F(" >= threshold, purging all"));
+      m_modem.deleteAllSMS();
+      return;
+    }
+
     for (int i = 0; i < count; i++) {
       ReceivedSMS sms;
       int idx = m_modem.getSMSIndex(i);
