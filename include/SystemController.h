@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "DoorSensor.h"
 #include "ModemHandler.h"
 
 /**
@@ -27,6 +28,7 @@ public:
   void loop();
 
 private:
+  DoorSensor m_doorSensor;
   ModemHandler m_modem;
   unsigned long m_lastSMSCheck;
 };

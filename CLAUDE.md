@@ -19,6 +19,16 @@ For detailed information, see the following resources:
 
 ---
 
+## Development Environment
+
+**Claude runs inside a Docker container (claudebox)**. This means:
+- **No access to PlatformIO (`pio`)** — do NOT attempt to compile, upload, or run `pio` commands
+- The user will compile locally and paste any errors back
+- Focus on writing correct code; the user handles build/upload/test cycles
+- **Do NOT commit or push** — the user commits from the host machine, not from inside the container
+
+---
+
 ## Project Overview
 
 IoT-based garage monitoring system with SMS remote control for monitoring door status, environmental conditions, and flood detection. Designed for deployment in a garage in the Venice area with remote SMS-based control.
