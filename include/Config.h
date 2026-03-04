@@ -83,6 +83,14 @@ const unsigned long DOOR_ALERT_DELAY_MIN = 30;            // Minutes before door
 const unsigned long DOOR_ALERT_DELAY_MS = DOOR_ALERT_DELAY_MIN * 60 * 1000; // Milliseconds before door-open alert
 
 // ============================================================================
+// Display Timing
+// ============================================================================
+const unsigned long DISPLAY_ON_DURATION_MS = 30000;     // Auto-off after this (page mode)
+const unsigned long NOTIFICATION_DURATION_MS = 10000;    // Notification overlay duration
+const unsigned long DISPLAY_REFRESH_INTERVAL_MS = 1000;  // Page content refresh rate
+const unsigned long FUNC_REBOOT_HOLD_MS = 5000;          // Hold FUNC this long to reboot
+
+// ============================================================================
 // Setup Mode (WiFi AP for configuration)
 // ============================================================================
 // Set to true to force setup mode without holding FUNC button at boot.

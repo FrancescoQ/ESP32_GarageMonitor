@@ -59,9 +59,6 @@ public:
 
 private:
   static const int NUM_PAGES = 3;
-  static const unsigned long REFRESH_INTERVAL_MS = 1000;
-  static const unsigned long DISPLAY_ON_DURATION_MS = 30000;
-  static const unsigned long NOTIFICATION_DURATION_MS = 30000;
 
   LiquidCrystal_I2C m_lcd;
   const Door& m_door;
@@ -83,7 +80,6 @@ private:
   bool m_inSetupMode;
 
   // FUNC button debounce + long-press reboot
-  static const unsigned long REBOOT_HOLD_MS = 3000;
   bool m_funcLastRaw;
   bool m_funcPressed;
   unsigned long m_funcDebounceTime;

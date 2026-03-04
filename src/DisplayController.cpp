@@ -81,7 +81,7 @@ void DisplayController::loop() {
   // Refresh content while display is on
   if (m_displayOn) {
     unsigned long now = millis();
-    if (now - m_lastRefresh >= REFRESH_INTERVAL_MS) {
+    if (now - m_lastRefresh >= DISPLAY_REFRESH_INTERVAL_MS) {
       m_lastRefresh = now;
       renderPage();
     }
@@ -159,7 +159,7 @@ void DisplayController::checkFuncButton() {
   }
 
   // Long-press reboot: held for 3s in any mode
-  if (m_funcPressed && millis() - m_funcPressStart >= REBOOT_HOLD_MS) {
+  if (m_funcPressed && millis() - m_funcPressStart >= FUNC_REBOOT_HOLD_MS) {
     Serial.println(F("[SYS] FUNC long-press — rebooting"));
     m_lcd.clear();
     m_lcd.setCursor(0, 0);
