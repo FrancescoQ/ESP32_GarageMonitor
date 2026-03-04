@@ -66,6 +66,12 @@ public:
   int16_t getSignalQuality();
 
   /**
+   * @brief Get signal as star rating (1-4 stars)
+   * @return Number of stars (0 if unknown)
+   */
+  int getSignalStars();
+
+  /**
    * @brief Get current network operator name
    * @return Operator string (e.g. "Iliad")
    */

@@ -151,14 +151,16 @@ void DisplayController::renderMainStatus() {
     m_lcd.print(F("Door:CLOSED"));
   }
 
-  // Line 2: "Water:OK  CSQ:20" or "Water:ALERT!"
+  // Line 2: "Water:OK Sig:***" or "Water:ALERT!"
   m_lcd.setCursor(0, 1);
   if (m_water.isWaterDetected()) {
     m_lcd.print(F("Water:ALERT!"));
   } else {
-    int16_t csq = m_modem.getSignalQuality();
+    int stars = m_modem.getSignalStars();
+    char sig[5] = "----";
+    for (int i = 0; i < stars && i < 4; i++) sig[i] = '*';
     char line[32];
-    snprintf(line, sizeof(line), "Water:OK  CSQ:%d", csq);
+    snprintf(line, sizeof(line), "Water:OK Sig:%s", sig);
     line[LCD_COLS] = '\0';
     m_lcd.print(line);
   }
@@ -181,11 +183,13 @@ void DisplayController::renderModemInfo() {
     m_lcd.print(F("Net: offline"));
   }
 
-  // Line 2: Signal quality detail
+  // Line 2: Signal quality stars
   m_lcd.setCursor(0, 1);
-  int16_t csq = m_modem.getSignalQuality();
+  int stars = m_modem.getSignalStars();
+  char sig[5] = "----";
+  for (int i = 0; i < stars && i < 4; i++) sig[i] = '*';
   char line[32];
-  snprintf(line, sizeof(line), "Signal: %d/31", csq);
+  snprintf(line, sizeof(line), "Sig: %s", sig);
   line[LCD_COLS] = '\0';
   m_lcd.print(line);
 }

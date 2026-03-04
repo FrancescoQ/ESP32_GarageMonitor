@@ -26,6 +26,11 @@ void SystemController::begin() {
   // Water sensor
   m_water.begin();
 
+  // Environmental sensor (BME280)
+  if (!m_env.begin()) {
+    Serial.println(F("[SYS] BME280 init failed — environmental data unavailable"));
+  }
+
   // Manual control buttons
   m_buttons.begin();
 
@@ -48,6 +53,7 @@ void SystemController::begin() {
 void SystemController::loop() {
   m_door.loop();
   m_water.loop();
+  m_env.loop();
   m_modem.loop();
   m_buttons.loop();
   m_display.loop();
@@ -217,12 +223,22 @@ String SystemController::buildStatusReply() {
     reply = "Door: CLOSED";
   }
 
+  // Environmental data
+  if (m_env.isReady()) {
+    reply += "\nTemp: " + String(m_env.getTemperature(), 1) + "C";
+    reply += " | Hum: " + String(m_env.getHumidity(), 1) + "%";
+  }
+
   // Water state
-  reply += m_water.isWaterDetected() ? " | Water: ALERT" : " | Water: OK";
+  reply += "\nWater: ";
+  reply += m_water.isWaterDetected() ? "ALERT" : "OK";
 
   // Signal quality
-  int16_t csq = m_modem.getSignalQuality();
-  reply += " | CSQ: " + String(csq) + "/31";
+  int stars = m_modem.getSignalStars();
+  char sig[5] = "----";
+  for (int i = 0; i < stars && i < 4; i++) sig[i] = '*';
+  reply += " | Sig: ";
+  reply += sig;
 
   return reply;
 }

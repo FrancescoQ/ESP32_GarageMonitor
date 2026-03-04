@@ -141,8 +141,31 @@ int16_t ModemHandler::getSignalQuality() {
   return m_modem.getSignalQuality();
 }
 
+int ModemHandler::getSignalStars() {
+  int16_t csq = getSignalQuality();
+  if (csq == 99 || csq < 0)  return 0;
+  if (csq < 10) return 1;
+  if (csq < 15) return 2;
+  if (csq < 20) return 3;
+  return 4;
+}
+
 String ModemHandler::getOperator() {
-  return m_modem.getOperator();
+  String op = m_modem.getOperator();
+  op.trim();
+
+  // Some carriers report doubled names (e.g. "Iliad Iliad",
+  // "My Carrier My Carrier"). If the string is "X X", return "X".
+  int len = op.length();
+  if (len >= 3 && len % 2 == 1 && op.charAt(len / 2) == ' ') {
+    String first = op.substring(0, len / 2);
+    String second = op.substring(len / 2 + 1);
+    if (first.equalsIgnoreCase(second)) {
+      return first;
+    }
+  }
+
+  return op;
 }
 
 bool ModemHandler::sendSMS(const char* number, const char* message) {

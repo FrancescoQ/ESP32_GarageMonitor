@@ -7,6 +7,7 @@
 #include "ModemHandler.h"
 #include "MessageParser.h"
 #include "DisplayController.h"
+#include "EnvironmentalSensor.h"
 
 /**
  * @brief System state enumeration
@@ -38,6 +39,7 @@ private:
   ModemHandler m_modem;
   MessageParser m_parser;
   DisplayController m_display;
+  EnvironmentalSensor m_env;
   unsigned long m_lastSMSCheck;
   bool m_alertSent;
   bool m_doorWasOpen;
