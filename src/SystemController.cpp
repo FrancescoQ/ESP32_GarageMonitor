@@ -8,7 +8,7 @@
 
 SystemController::SystemController()
   : m_buttons(m_door),
-    m_display(m_door, m_water, m_modem),
+    m_display(m_door, m_water, m_modem, m_env),
     m_lastSMSCheck(0),
     m_alertSent(false),
     m_doorWasOpen(false) {
@@ -65,12 +65,10 @@ void SystemController::loop() {
     if (doorOpen) {
       Serial.println(F("[SYS] Door opened."));
       m_alertSent = false;
-      // Don't notify on every state change, it's a waste of SMS.
-      // notifyAdmins("Garage door OPEN");
+      m_display.showNotification("Door:", "OPENED");
     } else {
       Serial.println(F("[SYS] Door closed."));
-      // Don't notify on every state change, it's a waste of SMS.
-      // notifyAdmins("Garage door CLOSED");
+      m_display.showNotification("Door:", "CLOSED");
     }
   }
 
@@ -83,6 +81,7 @@ void SystemController::loop() {
     char alertMsg[64];
     snprintf(alertMsg, sizeof(alertMsg), "ALERT: Garage door still open after %lu minutes", DOOR_ALERT_DELAY_MIN);
     notifyAdmins(alertMsg);
+    m_display.showNotification("SMS sent:", "Door open alert");
   }
 
   // Water detection — immediate alert to all users
@@ -90,9 +89,11 @@ void SystemController::loop() {
     if (m_water.isWaterDetected()) {
       Serial.println(F("[SYS] Water detected — alerting all users"));
       notifyAllUsers("ALERT: Water detected in garage!");
+      m_display.showNotification("SMS sent:", "Water ALERT!");
     } else {
       Serial.println(F("[SYS] Water cleared — notifying all users"));
       notifyAllUsers("Water no longer detected.");
+      m_display.showNotification("SMS sent:", "Water cleared");
     }
   }
 
@@ -163,24 +164,31 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
     return;
   }
 
+  // Build notification header: "SMS: <name>"
+  char notifyLine1[LCD_COLS + 1];
+  snprintf(notifyLine1, sizeof(notifyLine1), "SMS: %s", result.userName);
+
   switch (result.command) {
     case SMSCommand::STATUS: {
       String reply = buildStatusReply();
       Serial.print(F("[SYS] STATUS reply: "));
       Serial.println(reply);
       m_modem.sendSMS(sms.sender.c_str(), reply.c_str());
+      m_display.showNotification(notifyLine1, "CMD: STATUS");
       break;
     }
     case SMSCommand::CLOSE:
       Serial.println(F("[SYS] Executing CLOSE command"));
       m_door.close();
       m_modem.sendSMS(sms.sender.c_str(), "Closing garage door.");
+      m_display.showNotification(notifyLine1, "CMD: CLOSE");
       break;
 
     case SMSCommand::OPEN:
       Serial.println(F("[SYS] Executing OPEN command"));
       m_door.open();
       m_modem.sendSMS(sms.sender.c_str(), "Opening garage door.");
+      m_display.showNotification(notifyLine1, "CMD: OPEN");
       break;
 
     case SMSCommand::UNKNOWN:

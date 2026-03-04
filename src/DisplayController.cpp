@@ -1,9 +1,7 @@
 /**
  * @file DisplayController.cpp
- * @brief LCD 16x2 display driver with page navigation and auto-off
- *
- * Display is off by default. FUNC button turns it on (first press)
- * or cycles pages (subsequent presses). Auto-off after timeout.
+ * @brief LCD 16x2 display driver with page navigation, auto-off,
+ *        and notification overlay
  */
 
 #include "DisplayController.h"
@@ -11,15 +9,20 @@
 
 DisplayController::DisplayController(const Door& door,
                                      const WaterSensor& water,
-                                     ModemHandler& modem)
+                                     ModemHandler& modem,
+                                     const EnvironmentalSensor& env)
   : m_lcd(I2C_ADDR_LCD, LCD_COLS, LCD_ROWS),
     m_door(door),
     m_water(water),
     m_modem(modem),
+    m_env(env),
     m_currentPage(0),
     m_lastRefresh(0),
     m_displayOn(false),
     m_displayOnTime(0),
+    m_notificationActive(false),
+    m_notificationTime(0),
+    m_wasOnBeforeNotification(false),
     m_funcLastRaw(HIGH),
     m_funcPressed(false),
     m_funcDebounceTime(0) {
@@ -35,7 +38,7 @@ void DisplayController::begin() {
   // LCD init
   m_lcd.init();
 
-  // Show splash, then turn off after timeout
+  // Show splash, then auto-off after timeout
   showMessage("Garage Monitor", "Starting...");
   Serial.println(F("[LCD] Display initialized"));
 }
@@ -43,7 +46,27 @@ void DisplayController::begin() {
 void DisplayController::loop() {
   checkFuncButton();
 
-  // Auto-off after timeout
+  // Notification auto-expire
+  if (m_notificationActive
+      && millis() - m_notificationTime >= NOTIFICATION_DURATION_MS) {
+    m_notificationActive = false;
+    Serial.println(F("[LCD] Notification expired"));
+
+    if (m_wasOnBeforeNotification) {
+      // Restore pages — reset auto-off timer and render
+      m_displayOnTime = millis();
+      m_lastRefresh = millis();
+      renderPage();
+    } else {
+      turnOff();
+    }
+    return;
+  }
+
+  // Don't refresh pages while notification is showing
+  if (m_notificationActive) return;
+
+  // Auto-off after timeout (pages mode)
   if (m_displayOn && millis() - m_displayOnTime >= DISPLAY_ON_DURATION_MS) {
     turnOff();
     return;
@@ -72,6 +95,35 @@ void DisplayController::showMessage(const char* line1, const char* line2) {
   }
 }
 
+void DisplayController::showNotification(const char* line1, const char* line2) {
+  // Remember previous state so we can restore after expiry
+  if (!m_notificationActive) {
+    m_wasOnBeforeNotification = m_displayOn;
+  }
+
+  m_notificationActive = true;
+  m_notificationTime = millis();
+
+  turnOn();
+  m_lcd.clear();
+  if (line1 != nullptr) {
+    m_lcd.setCursor(0, 0);
+    m_lcd.print(line1);
+  }
+  if (line2 != nullptr) {
+    m_lcd.setCursor(0, 1);
+    m_lcd.print(line2);
+  }
+
+  Serial.print(F("[LCD] Notification: "));
+  if (line1 != nullptr) Serial.print(line1);
+  if (line2 != nullptr) {
+    Serial.print(F(" | "));
+    Serial.print(line2);
+  }
+  Serial.println();
+}
+
 void DisplayController::turnOn() {
   if (!m_displayOn) {
     m_lcd.backlight();
@@ -88,6 +140,7 @@ void DisplayController::turnOff() {
   m_lcd.clear();
   m_displayOn = false;
   m_currentPage = 0;
+  m_notificationActive = false;
   Serial.println(F("[LCD] Display off"));
 }
 
@@ -104,22 +157,25 @@ void DisplayController::checkFuncButton() {
       && (millis() - m_funcDebounceTime >= BTN_DEBOUNCE_MS)) {
     m_funcPressed = currentlyPressed;
 
-    // Act on falling edge (button just pressed)
     if (currentlyPressed) {
-      if (!m_displayOn) {
+      // Dismiss notification on button press
+      if (m_notificationActive) {
+        m_notificationActive = false;
+        m_currentPage = 0;
+        Serial.println(F("[LCD] Notification dismissed"));
+      } else if (!m_displayOn) {
         // First press: turn on, show page 0
         m_currentPage = 0;
-        turnOn();
       } else {
-        // Already on: cycle to next page, reset timeout
+        // Already on: cycle to next page
         m_currentPage = (m_currentPage + 1) % NUM_PAGES;
-        m_displayOnTime = millis();
       }
+
+      turnOn();
 
       Serial.print(F("[LCD] Page "));
       Serial.println(m_currentPage);
 
-      // Immediate refresh
       m_lastRefresh = millis();
       renderPage();
     }
@@ -130,66 +186,103 @@ void DisplayController::renderPage() {
   m_lcd.clear();
   switch (m_currentPage) {
     case 0:
-      renderMainStatus();
+      renderNetworkStatus();
       break;
     case 1:
-      renderModemInfo();
+      renderEnvironment();
+      break;
+    case 2:
+      renderSystem();
       break;
   }
 }
 
-void DisplayController::renderMainStatus() {
-  // Line 1: "Door:CLOSED" or "Door:OPEN  45m"
-  m_lcd.setCursor(0, 0);
-  if (m_door.isOpen()) {
-    unsigned long openMin = m_door.getOpenDurationMs() / 60000;
-    char line[32];
-    snprintf(line, sizeof(line), "Door:OPEN %3lum", openMin);
-    line[LCD_COLS] = '\0';
-    m_lcd.print(line);
-  } else {
-    m_lcd.print(F("Door:CLOSED"));
-  }
-
-  // Line 2: "Water:OK Sig:***" or "Water:ALERT!"
-  m_lcd.setCursor(0, 1);
-  if (m_water.isWaterDetected()) {
-    m_lcd.print(F("Water:ALERT!"));
-  } else {
-    int stars = m_modem.getSignalStars();
-    char sig[5] = "----";
-    for (int i = 0; i < stars && i < 4; i++) sig[i] = '*';
-    char line[32];
-    snprintf(line, sizeof(line), "Water:OK Sig:%s", sig);
-    line[LCD_COLS] = '\0';
-    m_lcd.print(line);
-  }
-}
-
-void DisplayController::renderModemInfo() {
-  // Line 1: Network operator
+void DisplayController::renderNetworkStatus() {
+  // Line 1: Operator + signal stars
+  // "Iliad    Sig:***-"
   m_lcd.setCursor(0, 0);
   if (m_modem.isNetworkConnected()) {
     String op = m_modem.getOperator();
+    int stars = m_modem.getSignalStars();
+    char sig[5] = "----";
+    for (int i = 0; i < stars && i < 4; i++) sig[i] = '*';
+
+    char line[32];
     if (op.length() > 0) {
-      char line[32];
-      snprintf(line, sizeof(line), "Net: %-11s", op.c_str());
-      line[LCD_COLS] = '\0';
-      m_lcd.print(line);
+      snprintf(line, sizeof(line), "%-12.12s%4s", op.c_str(), sig);
     } else {
-      m_lcd.print(F("Net: connected"));
+      snprintf(line, sizeof(line), "Connected   %4s", sig);
     }
+    m_lcd.print(line);
   } else {
     m_lcd.print(F("Net: offline"));
   }
 
-  // Line 2: Signal quality stars
+  // Line 2: Temperature + humidity (compact)
+  // "22.3C      65.2%"
   m_lcd.setCursor(0, 1);
-  int stars = m_modem.getSignalStars();
-  char sig[5] = "----";
-  for (int i = 0; i < stars && i < 4; i++) sig[i] = '*';
+  if (m_env.isReady()) {
+    char temp[8], hum[8];
+    snprintf(temp, sizeof(temp), "%.1fC", m_env.getTemperature());
+    snprintf(hum, sizeof(hum), "%.1f%%", m_env.getHumidity());
+    char line[32];
+    snprintf(line, sizeof(line), "%-8s%8s", temp, hum);
+    m_lcd.print(line);
+  } else {
+    m_lcd.print(F("BME280: N/A"));
+  }
+}
+
+void DisplayController::renderEnvironment() {
+  // Line 1: Temperature + humidity + pressure
+  // "22.3C 65% 1013mb"
+  m_lcd.setCursor(0, 0);
+  if (m_env.isReady()) {
+    char line[32];
+    snprintf(line, sizeof(line), "%.1fC %.0f%% %.0fmb",
+             m_env.getTemperature(),
+             m_env.getHumidity(),
+             m_env.getPressure());
+    m_lcd.print(line);
+  } else {
+    m_lcd.print(F("BME280: N/A"));
+  }
+
+  // Line 2: Water sensor status
+  // "Water: OK" or "Water: ALERT!"
+  m_lcd.setCursor(0, 1);
+  if (m_water.isWaterDetected()) {
+    m_lcd.print(F("Water: ALERT!"));
+  } else {
+    m_lcd.print(F("Water: OK"));
+  }
+}
+
+void DisplayController::renderSystem() {
+  // Line 1: Door state with duration
+  // "Door:Open    45m" or "Door:Closed"
+  m_lcd.setCursor(0, 0);
+  if (m_door.isOpen()) {
+    unsigned long openMin = m_door.getOpenDurationMs() / 60000;
+    char line[32];
+    snprintf(line, sizeof(line), "Door:Open %4lum", openMin);
+    m_lcd.print(line);
+  } else {
+    m_lcd.print(F("Door:Closed"));
+  }
+
+  // Line 2: Uptime
+  // "Up: 3d 14h 22m"
+  m_lcd.setCursor(0, 1);
+  unsigned long totalMin = millis() / 60000;
+  unsigned long days = totalMin / 1440;
+  unsigned long hours = (totalMin % 1440) / 60;
+  unsigned long mins = totalMin % 60;
   char line[32];
-  snprintf(line, sizeof(line), "Sig: %s", sig);
-  line[LCD_COLS] = '\0';
+  if (days > 0) {
+    snprintf(line, sizeof(line), "Up: %lud %luh %lum", days, hours, mins);
+  } else {
+    snprintf(line, sizeof(line), "Up: %luh %lum", hours, mins);
+  }
   m_lcd.print(line);
 }

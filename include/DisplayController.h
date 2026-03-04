@@ -7,8 +7,8 @@
  * (GPIO 15) is pressed. Subsequent presses cycle through pages.
  * The display turns off automatically after a timeout.
  *
- * SystemController can call showMessage() to display transient
- * messages (splash screen, init errors) that auto-expire.
+ * Notifications (SMS events) temporarily override any page for 30s,
+ * then restore the previous display state (on with pages, or off).
  */
 
 #pragma once
@@ -18,16 +18,12 @@
 #include "Door.h"
 #include "WaterSensor.h"
 #include "ModemHandler.h"
+#include "EnvironmentalSensor.h"
 
 class DisplayController {
 public:
-  /**
-   * @param door Read-only door state reference
-   * @param water Read-only water sensor reference
-   * @param modem Read-only modem handler reference
-   */
   DisplayController(const Door& door, const WaterSensor& water,
-                    ModemHandler& modem);
+                    ModemHandler& modem, const EnvironmentalSensor& env);
 
   /**
    * @brief Initialize LCD, FUNC button, and show splash screen
@@ -40,30 +36,48 @@ public:
   void loop();
 
   /**
-   * @brief Show a two-line message that auto-expires
+   * @brief Show a two-line message (splash, errors)
    *
-   * Turns the display on and shows the message for DISPLAY_ON_DURATION_MS.
-   * Useful for startup splash and init error messages.
+   * Turns the display on. Auto-off after DISPLAY_ON_DURATION_MS.
    *
    * @param line1 First line text (max 16 chars, nullptr to skip)
    * @param line2 Second line text (max 16 chars, nullptr to skip)
    */
   void showMessage(const char* line1, const char* line2 = nullptr);
 
+  /**
+   * @brief Show a notification that temporarily overrides the display
+   *
+   * Turns the display on if off, shows the notification for
+   * NOTIFICATION_DURATION_MS, then restores the previous state
+   * (pages if display was on, off if it was off).
+   *
+   * @param line1 First line text (max 16 chars)
+   * @param line2 Second line text (max 16 chars, nullptr to skip)
+   */
+  void showNotification(const char* line1, const char* line2 = nullptr);
+
 private:
-  static const int NUM_PAGES = 2;
+  static const int NUM_PAGES = 3;
   static const unsigned long REFRESH_INTERVAL_MS = 1000;
   static const unsigned long DISPLAY_ON_DURATION_MS = 30000;
+  static const unsigned long NOTIFICATION_DURATION_MS = 30000;
 
   LiquidCrystal_I2C m_lcd;
   const Door& m_door;
   const WaterSensor& m_water;
   ModemHandler& m_modem;
+  const EnvironmentalSensor& m_env;
 
   int m_currentPage;
   unsigned long m_lastRefresh;
   bool m_displayOn;
-  unsigned long m_displayOnTime;  ///< When display was last turned on
+  unsigned long m_displayOnTime;
+
+  // Notification overlay
+  bool m_notificationActive;
+  unsigned long m_notificationTime;
+  bool m_wasOnBeforeNotification;
 
   // FUNC button debounce
   bool m_funcLastRaw;
@@ -73,7 +87,8 @@ private:
   void turnOn();
   void turnOff();
   void renderPage();
-  void renderMainStatus();
-  void renderModemInfo();
+  void renderNetworkStatus();
+  void renderEnvironment();
+  void renderSystem();
   void checkFuncButton();
 };
