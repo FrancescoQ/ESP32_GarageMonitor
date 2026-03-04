@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:www.waveshare.com)",
       "WebSearch",
-      "Bash(git check-ignore include/Secrets.h)"
+      "Bash(git check-ignore include/Secrets.h)",
+      "Bash(find /workspace/src /workspace/include -type f \\\\\\( -name \"*.h\" -o -name \"*.cpp\" \\\\\\) 2>/dev/null | sort)"
     ]
   }
 }

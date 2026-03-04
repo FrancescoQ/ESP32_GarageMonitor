@@ -1,6 +1,14 @@
 /**
  * @file SystemController.cpp
  * @brief Main system coordinator implementation
+ *
+ * Supports two boot modes:
+ * - Normal mode: cellular + SMS monitoring (default)
+ * - Setup mode: WiFi AP + web UI (FUNC held at boot or SETUP_MODE_DEFAULT)
+ *
+ * Both modes share: Door, WaterSensor, EnvironmentalSensor, Buttons,
+ * ConfigManager, Display. Only one of ModemHandler or WebUIController
+ * is activated per boot.
  */
 
 #include "SystemController.h"
@@ -9,6 +17,7 @@
 SystemController::SystemController()
   : m_buttons(m_door),
     m_display(m_door, m_water, m_modem, m_env),
+    m_setupMode(false),
     m_lastSMSCheck(0),
     m_alertSent(false),
     m_doorWasOpen(false) {
@@ -19,44 +28,117 @@ void SystemController::begin() {
   Serial.println(F("  Garage Monitor - Starting"));
   Serial.println(F("========================================\n"));
 
-  // Door subsystem (relays fail-safe OFF, then sensor init)
+  // 1. Door subsystem FIRST (relays fail-safe OFF)
   m_door.begin();
   m_doorWasOpen = m_door.isOpen();
 
-  // Water sensor
+  // 2. Detect setup mode (FUNC button held at boot)
+  m_setupMode = detectSetupMode();
+
+  if (m_setupMode) {
+    Serial.println(F("[SYS] *** SETUP MODE ***"));
+  } else {
+    Serial.println(F("[SYS] Normal mode"));
+  }
+
+  // 3. Sensors and buttons (always, both modes)
   m_water.begin();
 
-  // Environmental sensor (BME280)
   if (!m_env.begin()) {
     Serial.println(F("[SYS] BME280 init failed — environmental data unavailable"));
   }
 
-  // Manual control buttons
   m_buttons.begin();
 
-  // Display (init before modem so splash screen shows during modem startup)
+  // 4. ConfigManager (NVS load — both modes need user data)
+  m_config.begin(AUTHORIZED_USERS);
+
+  // Wire MessageParser to use ConfigManager for user lookups
+  m_parser.setConfigManager(&m_config);
+
+  // 5. Display
   m_display.begin();
 
-  // Modem (display shows splash during this slow init)
-  if (m_modem.begin()) {
-    Serial.println(F("[SYS] Modem initialized successfully"));
+  // 6. Mode-specific initialization
+  if (m_setupMode) {
+    beginSetupMode();
   } else {
-    Serial.println(F("[SYS] Modem initialization failed"));
-    // TODO: show modem errors on LCD (e.g. "Modem: FAILED")
-    // once we have categorized failure modes (no SIM, no signal, etc.)
-    m_display.showMessage("Modem init", "FAILED");
+    beginNormalMode();
   }
 
   Serial.println(F("[SYS] System ready"));
 }
 
 void SystemController::loop() {
+  // Common subsystems (always run)
   m_door.loop();
   m_water.loop();
   m_env.loop();
-  m_modem.loop();
   m_buttons.loop();
   m_display.loop();
+
+  if (m_setupMode) {
+    loopSetupMode();
+  } else {
+    loopNormalMode();
+  }
+}
+
+ConfigManager& SystemController::getConfig() {
+  return m_config;
+}
+
+const Door& SystemController::getDoor() const {
+  return m_door;
+}
+
+const WaterSensor& SystemController::getWater() const {
+  return m_water;
+}
+
+const EnvironmentalSensor& SystemController::getEnv() const {
+  return m_env;
+}
+
+bool SystemController::isSetupMode() const {
+  return m_setupMode;
+}
+
+// =============================================================================
+// Setup mode detection
+// =============================================================================
+
+bool SystemController::detectSetupMode() {
+  // Read FUNC button raw (GPIO already set to INPUT_PULLUP by Door or will be
+  // by DisplayController — set it here too for safety, idempotent)
+  pinMode(PIN_BTN_FUNC, INPUT_PULLUP);
+  delay(50);  // Let pullup settle
+
+  bool funcHeld = (digitalRead(PIN_BTN_FUNC) == LOW);
+
+  if (funcHeld) {
+    Serial.println(F("[SYS] FUNC button held at boot — entering setup mode"));
+  }
+
+  return funcHeld || SETUP_MODE_DEFAULT;
+}
+
+// =============================================================================
+// Normal mode (cellular + SMS)
+// =============================================================================
+
+void SystemController::beginNormalMode() {
+  // Modem (display shows splash during this slow init)
+  if (m_modem.begin()) {
+    Serial.println(F("[SYS] Modem initialized successfully"));
+  } else {
+    Serial.println(F("[SYS] Modem initialization failed"));
+    m_display.showMessage("Modem init", "FAILED");
+  }
+}
+
+void SystemController::loopNormalMode() {
+  m_modem.loop();
 
   // Door state change detection
   bool doorOpen = m_door.isOpen();
@@ -73,13 +155,16 @@ void SystemController::loop() {
   }
 
   // Door open too long alert (single alert per open event)
-  if (doorOpen && !m_alertSent && m_door.getOpenDurationMs() >= DOOR_ALERT_DELAY_MS) {
+  uint32_t alertDelayMs = (uint32_t)m_config.getSettings().doorAlertMin * 60 * 1000;
+  if (doorOpen && !m_alertSent && m_door.getOpenDurationMs() >= alertDelayMs) {
     Serial.print(F("[SYS] Door open >"));
-    Serial.print(DOOR_ALERT_DELAY_MIN);
+    Serial.print(m_config.getSettings().doorAlertMin);
     Serial.println(F("min — sending alert"));
     m_alertSent = true;
     char alertMsg[64];
-    snprintf(alertMsg, sizeof(alertMsg), "ALERT: Garage door still open after %lu minutes", DOOR_ALERT_DELAY_MIN);
+    snprintf(alertMsg, sizeof(alertMsg),
+             "ALERT: Garage door still open after %lu minutes",
+             (unsigned long)m_config.getSettings().doorAlertMin);
     notifyAdmins(alertMsg);
     m_display.showNotification("SMS sent:", "Door open alert");
   }
@@ -98,9 +183,10 @@ void SystemController::loop() {
   }
 
   unsigned long now = millis();
+  uint32_t pollInterval = m_config.getSettings().smsPollMs;
 
   // SMS polling: check for incoming messages
-  if (m_modem.isNetworkConnected() && now - m_lastSMSCheck >= SMS_POLL_INTERVAL_MS) {
+  if (m_modem.isNetworkConnected() && now - m_lastSMSCheck >= pollInterval) {
     m_lastSMSCheck = now;
 
     int count = m_modem.checkForSMS();
@@ -139,6 +225,31 @@ void SystemController::loop() {
     }
   }
 }
+
+// =============================================================================
+// Setup mode (WiFi AP + web UI)
+// =============================================================================
+
+void SystemController::beginSetupMode() {
+  m_webUI.begin(m_config, m_door, m_water, m_env);
+
+  // Show SSID and IP on LCD
+  String ip = m_webUI.getIPAddress();
+  m_display.showSetupMode(WIFI_AP_SSID, ip.c_str());
+
+  Serial.print(F("[SYS] Setup mode ready — connect to "));
+  Serial.print(WIFI_AP_SSID);
+  Serial.print(F(" and browse http://"));
+  Serial.println(ip);
+}
+
+void SystemController::loopSetupMode() {
+  m_webUI.loop();
+}
+
+// =============================================================================
+// SMS command handling
+// =============================================================================
 
 void SystemController::handleSMS(const ReceivedSMS& sms) {
   ParseResult result = m_parser.parse(sms.sender, sms.message);
@@ -198,24 +309,28 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
 }
 
 void SystemController::notifyAdmins(const char* message) {
-  for (int i = 0; AUTHORIZED_USERS[i].number != nullptr; i++) {
-    if (AUTHORIZED_USERS[i].permissions & PERM_CONFIG) {
+  for (int i = 0; i < m_config.getUserCount(); i++) {
+    const NvsUser* user = m_config.getUser(i);
+    if (user != nullptr && (user->permissions & PERM_CONFIG)) {
       Serial.print(F("[SYS] Notifying "));
-      Serial.print(AUTHORIZED_USERS[i].name);
+      Serial.print(user->name);
       Serial.print(F(": "));
       Serial.println(message);
-      m_modem.sendSMS(AUTHORIZED_USERS[i].number, message);
+      m_modem.sendSMS(user->phone.c_str(), message);
     }
   }
 }
 
 void SystemController::notifyAllUsers(const char* message) {
-  for (int i = 0; AUTHORIZED_USERS[i].number != nullptr; i++) {
-    Serial.print(F("[SYS] Notifying "));
-    Serial.print(AUTHORIZED_USERS[i].name);
-    Serial.print(F(": "));
-    Serial.println(message);
-    m_modem.sendSMS(AUTHORIZED_USERS[i].number, message);
+  for (int i = 0; i < m_config.getUserCount(); i++) {
+    const NvsUser* user = m_config.getUser(i);
+    if (user != nullptr) {
+      Serial.print(F("[SYS] Notifying "));
+      Serial.print(user->name);
+      Serial.print(F(": "));
+      Serial.println(message);
+      m_modem.sendSMS(user->phone.c_str(), message);
+    }
   }
 }
 

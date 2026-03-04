@@ -23,9 +23,11 @@ DisplayController::DisplayController(const Door& door,
     m_notificationActive(false),
     m_notificationTime(0),
     m_wasOnBeforeNotification(false),
+    m_inSetupMode(false),
     m_funcLastRaw(HIGH),
     m_funcPressed(false),
-    m_funcDebounceTime(0) {
+    m_funcDebounceTime(0),
+    m_funcPressStart(0) {
 }
 
 void DisplayController::begin() {
@@ -44,7 +46,11 @@ void DisplayController::begin() {
 }
 
 void DisplayController::loop() {
+  // Always check FUNC button (long-press reboot works in all modes)
   checkFuncButton();
+
+  // Setup mode: display stays on permanently, no page cycling
+  if (m_inSetupMode) return;
 
   // Notification auto-expire
   if (m_notificationActive
@@ -152,12 +158,27 @@ void DisplayController::checkFuncButton() {
     m_funcLastRaw = raw;
   }
 
+  // Long-press reboot: held for 3s in any mode
+  if (m_funcPressed && millis() - m_funcPressStart >= REBOOT_HOLD_MS) {
+    Serial.println(F("[SYS] FUNC long-press — rebooting"));
+    m_lcd.clear();
+    m_lcd.setCursor(0, 0);
+    m_lcd.print(F("Rebooting..."));
+    delay(500);
+    ESP.restart();
+  }
+
   bool currentlyPressed = (raw == LOW);
   if (currentlyPressed != m_funcPressed
       && (millis() - m_funcDebounceTime >= BTN_DEBOUNCE_MS)) {
     m_funcPressed = currentlyPressed;
 
     if (currentlyPressed) {
+      m_funcPressStart = millis();
+
+      // In setup mode, FUNC only does long-press reboot (handled above)
+      if (m_inSetupMode) return;
+
       // Dismiss notification on button press
       if (m_notificationActive) {
         m_notificationActive = false;
@@ -256,6 +277,16 @@ void DisplayController::renderEnvironment() {
   } else {
     m_lcd.print(F("Water: OK"));
   }
+}
+
+void DisplayController::showSetupMode(const char* ssid, const char* ip) {
+  m_inSetupMode = true;
+  turnOn();
+  m_lcd.clear();
+  m_lcd.setCursor(0, 0);
+  m_lcd.print(ssid);
+  m_lcd.setCursor(0, 1);
+  m_lcd.print(ip);
 }
 
 void DisplayController::renderSystem() {

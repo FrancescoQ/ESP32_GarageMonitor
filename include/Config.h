@@ -83,6 +83,16 @@ const unsigned long DOOR_ALERT_DELAY_MIN = 30;            // Minutes before door
 const unsigned long DOOR_ALERT_DELAY_MS = DOOR_ALERT_DELAY_MIN * 60 * 1000; // Milliseconds before door-open alert
 
 // ============================================================================
+// Setup Mode (WiFi AP for configuration)
+// ============================================================================
+// Set to true to force setup mode without holding FUNC button at boot.
+// Useful during development. Set to false for production.
+const bool SETUP_MODE_DEFAULT = false;
+
+const char* const WIFI_AP_SSID = "GarageSetup";
+const int WEB_SERVER_PORT = 80;
+
+// ============================================================================
 // System
 // ============================================================================
 const long SERIAL_BAUD_RATE = 115200;

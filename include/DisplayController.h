@@ -79,10 +79,15 @@ private:
   unsigned long m_notificationTime;
   bool m_wasOnBeforeNotification;
 
-  // FUNC button debounce
+  // Setup mode — persistent display, no auto-off or page cycling
+  bool m_inSetupMode;
+
+  // FUNC button debounce + long-press reboot
+  static const unsigned long REBOOT_HOLD_MS = 3000;
   bool m_funcLastRaw;
   bool m_funcPressed;
   unsigned long m_funcDebounceTime;
+  unsigned long m_funcPressStart;
 
   void turnOn();
   void turnOff();
@@ -91,4 +96,12 @@ private:
   void renderEnvironment();
   void renderSystem();
   void checkFuncButton();
+
+public:
+  /**
+   * @brief Show setup mode screen with SSID and IP address
+   * @param ssid WiFi AP SSID
+   * @param ip IP address string (e.g. "192.168.4.1")
+   */
+  void showSetupMode(const char* ssid, const char* ip);
 };

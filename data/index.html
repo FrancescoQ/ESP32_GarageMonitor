@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garage Monitor Setup</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <h1>Garage Monitor Setup</h1>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('users')">Users</div>
+    <div class="tab" onclick="showTab('settings')">Settings</div>
+    <div class="tab" onclick="showTab('diag')">Diagnostics</div>
+  </div>
+
+  <!-- Users Panel -->
+  <div id="users" class="panel active">
+    <div id="userMsg"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Permissions</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="userList"></tbody>
+    </table>
+    <h3 class="section-title">Add User</h3>
+    <div class="form-row">
+      <label>Name</label>
+      <input id="newName" placeholder="e.g. Family">
+    </div>
+    <div class="form-row">
+      <label>Phone</label>
+      <input id="newPhone" placeholder="+39...">
+    </div>
+    <div class="form-row">
+      <label>Perms</label>
+      <div class="perm-grid">
+        <label><input type="checkbox" id="pS" checked> STATUS</label>
+        <label><input type="checkbox" id="pC"> CLOSE</label>
+        <label><input type="checkbox" id="pO"> OPEN</label>
+        <label><input type="checkbox" id="pCfg"> CONFIG</label>
+      </div>
+    </div>
+    <button class="btn-add" onclick="addUser()">Add User</button>
+  </div>
+
+  <!-- Settings Panel -->
+  <div id="settings" class="panel">
+    <div id="setMsg"></div>
+    <div id="settingsForm">
+      <div class="form-row">
+        <label>Door alert</label>
+        <input id="sDoorAlert" type="number" min="1" max="1440">
+        <span class="unit">&nbsp;min</span>
+      </div>
+      <div class="form-row">
+        <label>SMS poll</label>
+        <input id="sSmsPoll" type="number" min="1000" max="60000" step="1000">
+        <span class="unit">&nbsp;ms</span>
+      </div>
+      <div class="form-row">
+        <label>Deep sleep</label>
+        <label class="toggle">
+          <input type="checkbox" id="sDeepSleep">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    <button class="btn-save" onclick="saveSettings()">Save Settings</button>
+  </div>
+
+  <!-- Diagnostics Panel -->
+  <div id="diag" class="panel">
+    <div id="diagContent">Loading...</div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

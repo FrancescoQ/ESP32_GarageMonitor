@@ -1,0 +1,279 @@
+/* Garage Monitor Setup - Dark Theme */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 1.3em;
+  margin-bottom: 12px;
+  color: #4fc3f7;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: 1px solid #333;
+  background: #16213e;
+  color: #aaa;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  font-size: .9em;
+}
+
+.tab.active {
+  background: #0f3460;
+  color: #4fc3f7;
+  border-bottom-color: #0f3460;
+}
+
+/* Panels */
+.panel {
+  display: none;
+  background: #0f3460;
+  border-radius: 0 6px 6px 6px;
+  padding: 16px;
+}
+
+.panel.active {
+  display: block;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+th, td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #1a1a2e;
+}
+
+th {
+  color: #4fc3f7;
+  font-size: .85em;
+}
+
+td {
+  font-size: .9em;
+}
+
+/* Permission badges */
+.perm {
+  font-size: .75em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 1px;
+  display: inline-block;
+}
+
+.perm.on {
+  background: #1b5e20;
+  color: #a5d6a7;
+}
+
+.perm.off {
+  background: #333;
+  color: #666;
+}
+
+/* Buttons */
+button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: .85em;
+}
+
+.btn-del {
+  background: #c62828;
+  color: #fff;
+}
+
+.btn-add {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.btn-save {
+  background: #1565c0;
+  color: #fff;
+  margin-top: 8px;
+}
+
+.btn-del:hover {
+  background: #e53935;
+}
+
+.btn-add:hover {
+  background: #388e3c;
+}
+
+.btn-save:hover {
+  background: #1976d2;
+}
+
+/* Form elements */
+input, select {
+  padding: 6px 8px;
+  border: 1px solid #333;
+  background: #16213e;
+  color: #e0e0e0;
+  border-radius: 4px;
+  font-size: .9em;
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.form-row label {
+  min-width: 60px;
+  font-size: .85em;
+  color: #aaa;
+}
+
+.form-row input,
+.form-row select {
+  flex: 1;
+}
+
+.unit {
+  color: #aaa;
+  font-size: .85em;
+  min-width: 30px;
+}
+
+.section-title {
+  margin: 12px 0 8px;
+  font-size: 1em;
+  color: #4fc3f7;
+}
+
+/* Messages */
+.msg {
+  padding: 8px;
+  margin: 8px 0;
+  border-radius: 4px;
+  font-size: .85em;
+}
+
+.msg.ok {
+  background: #1b5e20;
+  color: #a5d6a7;
+}
+
+.msg.err {
+  background: #b71c1c;
+  color: #ef9a9a;
+}
+
+/* Permission checkboxes */
+.perm-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.perm-grid label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .85em;
+  cursor: pointer;
+}
+
+/* Diagnostics */
+.diag-val {
+  font-family: monospace;
+  color: #4fc3f7;
+}
+
+.diag-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #1a1a2e;
+}
+
+.diag-label {
+  color: #aaa;
+  font-size: .9em;
+}
+
+/* Settings form spacing */
+#settingsForm .form-row {
+  margin-bottom: 12px;
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #333;
+  border-radius: 24px;
+  transition: .3s;
+}
+
+.toggle .slider:before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: #aaa;
+  border-radius: 50%;
+  transition: .3s;
+}
+
+.toggle input:checked + .slider {
+  background: #2e7d32;
+}
+
+.toggle input:checked + .slider:before {
+  transform: translateX(20px);
+  background: #fff;
+}

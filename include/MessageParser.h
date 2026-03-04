@@ -5,11 +5,17 @@
  * Parses incoming SMS messages, verifies sender against an
  * allowlist, and checks granular permissions before allowing
  * command execution.
+ *
+ * User lookup delegates to ConfigManager when set, falling back
+ * to the hardcoded AUTHORIZED_USERS array otherwise.
  */
 
 #pragma once
 
 #include <Arduino.h>
+
+// Forward declaration — avoids circular include
+class ConfigManager;
 
 // ============================================================================
 // Permission flags (bitmask)
@@ -29,7 +35,7 @@ const uint8_t PERM_CONTROL_MIN = PERM_STATUS | PERM_CLOSE;
 const uint8_t PERM_MONITOR = PERM_STATUS;
 
 // ============================================================================
-// Authorized user entry (populated in Secrets.h)
+// Authorized user entry (populated in Secrets.h for defaults)
 // ============================================================================
 
 struct AuthorizedUser {
@@ -77,6 +83,16 @@ public:
   MessageParser();
 
   /**
+   * @brief Set ConfigManager for dynamic user lookup
+   *
+   * When set, findUser() delegates to ConfigManager instead of
+   * scanning the hardcoded AUTHORIZED_USERS array.
+   *
+   * @param config Pointer to ConfigManager (must outlive MessageParser)
+   */
+  void setConfigManager(ConfigManager* config);
+
+  /**
    * @brief Parse an incoming SMS and check authorization
    * @param sender Phone number of the SMS sender
    * @param message SMS body text
@@ -95,12 +111,17 @@ public:
   static String normalizePhoneNumber(const String& number);
 
 private:
+  ConfigManager* m_config;
+
   /**
-   * @brief Find user in AUTHORIZED_USERS by normalized number
-   * @param normalizedNumber Phone number in +39 format
-   * @return Pointer to AuthorizedUser entry, or nullptr if not found
+   * @brief Find user by normalized number (delegates to ConfigManager or hardcoded list)
+   * @param normalizedNumber Phone number in +CC format
+   * @param outName Set to user's display name if found
+   * @param outPerms Set to user's permissions if found
+   * @return true if user found
    */
-  const AuthorizedUser* findUser(const String& normalizedNumber) const;
+  bool findUser(const String& normalizedNumber,
+                const char*& outName, uint8_t& outPerms) const;
 
   /**
    * @brief Parse command string to enum (case-insensitive, trimmed)
