@@ -214,46 +214,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 ---
 
-### Phase 4: Power Management (Week 6)
-
-**Objectives:**
-- Implement deep sleep functionality
-- Optimize power consumption
-- Define wake-up triggers
-- Extend system runtime
-
-**Implementation Steps:**
-
-1. **PowerManager Class**
-   - Deep sleep configuration
-   - Wake-up source management (RTC, GPIO, SIM7000G interrupt)
-   - Power consumption profiling
-   - Sleep schedule calculation
-
-2. **Wake-up Triggers**
-   - Periodic checks (e.g., every 30 minutes)
-   - Incoming SMS (SIM7000G RI pin)
-   - Door state change (reed switch)
-   - Water detection (sensor interrupt)
-   - Button press (manual check)
-
-3. **Graceful Transitions**
-   - Save state before sleep
-   - Quick resume from sleep
-   - Minimize wake time
-   - Handle incomplete operations
-
-**Testing Scenarios:**
-- [ ] System enters deep sleep correctly
-- [ ] Wakes up on SMS reception
-- [ ] Wakes up on door change
-- [ ] Wakes up on water detection
-- [ ] Periodic wake-ups occur
-- [ ] Measure actual power consumption
-
----
-
-### Phase 5: Advanced Features (Week 7+)
+### Phase 4: Configuration & Web UI (Week 6)
 
 **Objectives:**
 - Implement credit monitoring
@@ -290,6 +251,47 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - [ ] Web UI accessible and functional
 - [ ] Configuration persists after reboot
 - [ ] Diagnostics provide useful information
+
+---
+
+### Phase 5: Power Management (Week 7+)
+
+**Objectives:**
+- Implement deep sleep functionality
+- Optimize power consumption
+- Define wake-up triggers
+- Extend system runtime
+
+**Implementation Steps:**
+
+1. **PowerManager Class**
+   - Deep sleep configuration
+   - **Runtime-configurable**: deep sleep enable/disable flag stored in NVS, so it can be toggled from the web UI (Phase 4) or via SMS command (`SLEEP ON`/`SLEEP OFF`, ADMIN only) without physical access — useful for debugging field issues
+   - When disabled, system stays awake and polls normally (higher power, but more responsive)
+   - Wake-up source management (RTC, GPIO, SIM7000G interrupt)
+   - Power consumption profiling
+   - Sleep schedule calculation
+
+2. **Wake-up Triggers**
+   - Periodic checks (e.g., every 30 minutes)
+   - Incoming SMS (SIM7000G RI pin)
+   - Door state change (reed switch)
+   - Water detection (sensor interrupt)
+   - Button press (manual check)
+
+3. **Graceful Transitions**
+   - Save state before sleep
+   - Quick resume from sleep
+   - Minimize wake time
+   - Handle incomplete operations
+
+**Testing Scenarios:**
+- [ ] System enters deep sleep correctly
+- [ ] Wakes up on SMS reception
+- [ ] Wakes up on door change
+- [ ] Wakes up on water detection
+- [ ] Periodic wake-ups occur
+- [ ] Measure actual power consumption
 
 ---
 
@@ -579,7 +581,7 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 - Simple allowlist model (easier to verify than blocklist)
 - Works even if WiFi/internet is down
 
-**Phase 5 Enhancement:**
+**Phase 4 Enhancement:**
 - Move authorized users and permissions to persistent storage (NVS)
 - Add/remove users via WiFi setup mode
 - Assign/revoke permissions via web UI (ADMIN only)
@@ -618,10 +620,15 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 - Environmental data monitored
 - Multiple SMS commands supported
 
+**Phase 4 Complete:**
+- Configuration persists via NVS
+- Web UI accessible for setup
+- Credit monitoring functional
+- All advanced features functional
+
 **Phase 5 Complete:**
 - Deep sleep reduces power consumption >80%
 - System runs reliably for weeks
-- All advanced features functional
 - Easy to maintain and update
 
 **Final Installation:**
@@ -636,8 +643,8 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 
 - **Weeks 1-3:** Software Phases 0-1, Hardware Phase A (Foundation + Door + SMS)
 - **Weeks 4-5:** Software Phases 2-3, Hardware Phase B (Environmental + Water sensors)
-- **Week 6:** Software Phase 4, Hardware Phase C (Power optimization + Enclosure design)
-- **Week 7:** Software Phase 5, Hardware Phase D (Advanced features + Cable fab)
+- **Week 6:** Software Phase 4, Hardware Phase C (Configuration & Web UI + Enclosure design)
+- **Week 7:** Software Phase 5, Hardware Phase D (Power management + Cable fab)
 - **Week 8+:** Hardware Phase E (Final assembly and installation)
 
 **Total Estimated Time:** 8-10 weeks for complete system

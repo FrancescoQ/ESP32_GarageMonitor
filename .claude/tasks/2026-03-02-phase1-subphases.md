@@ -213,7 +213,7 @@ bool deleteAllSMS();                        // AT+CMGD=1,4 (emergency purge)
 | **1A** | SMS Receive (AT commands) | **High** | — | 2-3h | ✅ Done |
 | **1B** | DoorSensor class (refactor) | Low | DoorSensor.h/cpp | 1-2h | ✅ Done |
 | **1C** | MessageParser + permissions | Medium | MessageParser.h/cpp | 2-3h | ✅ Done |
-| **1D** | DisplayController (LCD) | Low | DisplayController.h/cpp | 1-2h | 🔲 |
+| **1D** | DisplayController (LCD) | Low | DisplayController.h/cpp | 1-2h | ✅ Done |
 | **1E** | Integration + state machine | Medium | — | 3-4h | ✅ Done |
 
 **Recommended order**: 1A → 1B → 1C → 1D → 1E
@@ -269,6 +269,36 @@ Each sub-phase leaves the system in a working state and can be tested independen
 **Phase 1 status**: 1D (DisplayController) is the only remaining sub-phase.
 All core functionality (door monitoring, SMS command loop, authorization,
 relay control) is working and hardware-tested.
+
+### 2026-03-04: Sub-Phase 1D Complete + Phase 2/3 Sensor Integration
+
+**DisplayController** (3-page LCD layout):
+- **Page 1 (Network)**: signal quality bars + modem status
+- **Page 2 (Environment)**: temperature/humidity (BME280) + water status
+- **Page 3 (System)**: door state + uptime display
+- FUNC button cycles through pages
+- Door open/close LCD notifications (temporary overlay)
+- LCD string overflow fixes (all strings fit 16-column display)
+- Graceful handling when LCD not connected
+
+**EnvironmentalSensor** (Phase 2 partial):
+- BME280 driver integrated, reads temperature and humidity
+- Values displayed on LCD environment page
+- STATUS SMS includes temp/humidity readings
+- Periodic SMS reports intentionally skipped (no unsolicited spam)
+
+**WaterSensor** (Phase 3 complete):
+- XKC-Y25 capacitive sensor with software debounce
+- Immediate SMS alert on water detection
+- Water status shown on LCD environment page
+
+**ButtonController** enhancements:
+- CLOSE/OPEN/STOP buttons for manual door control
+- FUNC button for display page cycling
+
+**Phase 1 status**: ALL sub-phases (1A–1E) complete. Phase 2/3 sensors
+integrated. System is fully functional for door monitoring, SMS command
+processing, environmental monitoring, and flood detection.
 
 ---
 

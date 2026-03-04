@@ -1,8 +1,8 @@
 # Garage Monitoring System - Claude Code Context
 
-> **Project Status**: Phase 0 - Architecture & Foundation
+> **Project Status**: Phase 1 Complete — Phases 2-3 sensors integrated
 > **Location**: Venice (Marghera), Italy
-> **Last Updated**: February 12, 2026
+> **Last Updated**: March 4, 2026
 
 ---
 
@@ -47,107 +47,87 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 - Temperature and humidity monitoring
 - Flood detection with priority alerts
 - Granular SMS command authorization system
-- Low-power operation with deep sleep (Phase 4)
+- Low-power operation with deep sleep (Phase 5)
 - Modular OOP architecture
 
 ---
 
 ## Development Phases
 
-### ✅ Phase 0: Architecture & Foundation (Week 1) - IN PROGRESS
-**Status**: Bare minimum setup complete, ready to start implementation
-
-**Completed**:
+### ✅ Phase 0: Architecture & Foundation (Week 1) - COMPLETE
 - [x] PlatformIO project configured
 - [x] Libraries installed (TinyGSM, BME280, LiquidCrystal_I2C, ArduinoJson)
 - [x] SystemController skeleton created
 - [x] main.cpp basic structure
 - [x] Architecture documented
+- [x] LCD, I2C, UART, GPIO all tested and working
+- [x] Pin assignments defined in Config.h
 
-**Current Tasks**:
-- [ ] LCD "Hello World" test
-- [ ] I2C scanner implementation
-- [ ] GPIO LED test
-- [ ] UART communication test
-- [ ] Pin assignments documentation
+### ✅ Phase 1: Door Monitoring + SMS Core (Week 2-3) - COMPLETE
+**Delivered**:
+- DoorSensor class (reed switch + software debounce)
+- DoorController class (relay sequences: STOP → pause → action)
+- Door facade (combines DoorSensor + DoorController)
+- ModemHandler (SIM7000G: power-on, SIM unlock, network, SMS send/receive/delete)
+- MessageParser (command parsing + sender verification + granular permissions)
+- DisplayController (LCD 16x2, 3-page layout with notifications)
+- ButtonController (CLOSE/OPEN/STOP/FUNC physical buttons)
+- Full SMS command loop: receive → parse → authorize → execute → respond → delete
+- Security: ADMIN/CONTROL/MONITOR permission levels, phone number normalization
 
-### 🔲 Phase 1: Door Monitoring + SMS Core (Week 2-3)
-**Key deliverables**:
-- DoorSensor class (reed switch monitoring with debouncing)
-- SMSHandler class (SIM7000G AT commands, send/receive, **SMS storage management**)
-- MessageParser class with **sender verification and permissions**
-- DisplayController class (LCD status display)
-- Basic state machine (IDLE, ALERT, COMMAND_PROCESSING)
+### ✅ Phase 2: Environmental Monitoring (Week 4) - PARTIAL
+- [x] EnvironmentalSensor class (BME280 driver via I2C)
+- [x] Temperature/humidity displayed on LCD environment page
+- [x] STATUS SMS includes temperature/humidity readings
+- [ ] ~~Periodic SMS reports~~ — intentionally skipped (no unsolicited SMS spam)
+- [ ] Temperature/humidity threshold alerts (future)
 
-**Security Model**:
-- Granular permission system (ADMIN, CONTROL, MONITOR)
-- SMS sender number verification (allowlist only)
-- Support for STATUS and CLOSE commands
-- Optional OPEN command (secure and fun)
+### ✅ Phase 3: Water Detection (Week 5) - COMPLETE
+- [x] WaterSensor class (XKC-Y25 + software debounce)
+- [x] Immediate SMS alert on water detection
+- [x] Water status displayed on LCD environment page
+- [x] Inverted container design for sensor protection
 
-### 🔲 Phase 2: Environmental Monitoring (Week 4)
-- EnvironmentalSensor class (BME280)
-- Periodic SMS reports (e.g., every 6 hours)
-- Temperature/humidity alerts on threshold breach
-
-### 🔲 Phase 3: Water Detection (Week 5)
-- WaterSensor class (XKC-Y25)
-- Priority alert system (immediate SMS)
-- Inverted container design for sensor protection
-
-### 🔲 Phase 4: Power Management (Week 6)
-- PowerManager class
-- Deep sleep implementation
-- Wake-up triggers (SMS, door change, water detection, periodic)
-- Power consumption optimization
-
-### 🔲 Phase 5: Advanced Features (Week 7+)
+### 🔲 Phase 4: Configuration & Web UI (Week 6)
 - Credit monitoring (Iliad 400 service)
 - WiFi setup mode (web UI for configuration)
 - Diagnostics and logging
 - NVS storage for authorized users
+- Multilingual SMS support (IT/EN command aliases + localized responses)
+
+### 🔲 Phase 5: Power Management (Week 7+)
+- PowerManager class
+- Deep sleep implementation (runtime-configurable via NVS from Phase 4 — can be disabled from web UI or SMS if issues arise in the field)
+- Wake-up triggers (SMS via RI pin, door change, water detection, periodic)
+- SMS polling → URC notification migration (AT+CNMI)
+- Power consumption optimization
 
 ---
 
 ## Architecture Design
 
-### State Machine
-```cpp
-enum class SystemState {
-    IDLE,                  // Door closed, no alerts
-    MONITORING,            // Active monitoring
-    ALERT,                 // Door open >X minutes
-    SLEEP,                 // Deep sleep mode
-    SETUP,                 // WiFi configuration mode
-    COMMAND_PROCESSING     // Executing SMS command
-};
-```
+### Event-Driven Loop
+The system uses an event-driven `loop()` with boolean flags (`m_alertSent`, `m_doorWasOpen`) for door-open tracking and alert suppression — not a formal state machine. A state machine with explicit transitions (IDLE, SLEEP, etc.) may be introduced in Phase 5 when deep sleep adds real state complexity.
 
-### Class Structure
+### Class Structure (Implemented)
 ```
 SystemController (main coordinator)
-├── HardwareManager
-│   ├── DoorSensor
-│   ├── EnvironmentalSensor
-│   ├── WaterSensor
-│   └── DisplayController
-├── CommunicationManager
-│   ├── SMSHandler
-│   ├── ATCommandInterface
-│   └── MessageParser
-├── PowerManager (Phase 4)
-│   ├── DeepSleepController
-│   └── WakeupHandler
-└── ConfigManager (Phase 5)
-    ├── PersistentStorage
-    └── SetupMode
+├── Door (facade)
+│   ├── DoorSensor (reed switch + debounce)
+│   └── DoorController (relay sequences)
+├── WaterSensor (XKC-Y25 + debounce)
+├── EnvironmentalSensor (BME280)
+├── ModemHandler (SIM7000G: init, SMS, signal)
+├── MessageParser (command parsing + authorization)
+├── DisplayController (LCD 16x2, 3 pages, notifications)
+├── ButtonController (CLOSE/OPEN/STOP/FUNC buttons)
+├── ConfigManager (Phase 4)
+└── PowerManager (Phase 5)
 ```
 
 ### Design Patterns
-- **State Machine**: For system state management
-- **Observer**: Sensors notify controller of events
-- **Factory**: Sensor instantiation
-- **Singleton**: CommunicationManager
+- **Facade**: Door wraps DoorSensor + DoorController behind a single interface
+- **Observer**: Sensors notify controller of events via callbacks
 
 ---
 
@@ -185,33 +165,42 @@ enum Permission {
 
 ## Hardware Configuration
 
-### Pin Assignments (To be defined in Phase 1)
+### Pin Assignments (defined in Config.h)
 ```
-I2C Bus (shared):
-- SDA: GPIO ? (LCD + BME280)
-- SCL: GPIO ? (LCD + BME280)
+I2C Bus (shared: LCD + BME280):
+- SDA: GPIO 21
+- SCL: GPIO 22
 
 UART (SIM7000G):
-- TX: GPIO ?
-- RX: GPIO ?
-- PWRKEY: GPIO ?
-- RI: GPIO ? (SMS wake-up, Phase 4)
+- TX: GPIO 17
+- RX: GPIO 16
+- PWRKEY: GPIO 4
+- DTR: GPIO 18 (sleep control, Phase 5)
 
-GPIO:
-- Door Reed Switch: GPIO ? (INPUT_PULLUP)
-- Water Sensor: GPIO ? (INPUT)
-- Door Close Relay: GPIO ? (OUTPUT)
-- Door Open Relay: GPIO ? (OUTPUT, optional)
+Sensors:
+- Door Reed Switch: GPIO 5 (INPUT_PULLUP)
+- Water Sensor: GPIO 32 (INPUT)
+
+Relay Outputs:
+- CLOSE: GPIO 25
+- STOP: GPIO 26
+- OPEN: GPIO 27
+
+Manual Buttons (all INPUT_PULLUP):
+- CLOSE: GPIO 33
+- OPEN: GPIO 13
+- STOP: GPIO 14
+- FUNC: GPIO 15
 ```
 
-### I2C Device Addresses
-- LCD 16x2: 0x27 or 0x3F (verify with scanner)
-- BME280: 0x76 or 0x77 (default 0x76)
+### I2C Device Addresses (confirmed)
+- LCD 16x2: 0x27
+- BME280: 0x76
 
 ### Power Requirements
 - Supply: USB-C 5V 2A
 - Smoothing: 2200µF capacitor for SIM7000G peak current
-- Consumption: TBD (measure in Phase 4)
+- Consumption: TBD (measure in Phase 5)
 
 ---
 
@@ -230,7 +219,7 @@ GPIO:
 - Use I2C scanner before assuming device addresses
 - Test SMS communication early (highest risk item)
 - Implement sender verification from Phase 1
-- Measure power consumption in Phase 4
+- Measure power consumption in Phase 5
 
 ### PlatformIO Configuration
 ```ini
@@ -291,14 +280,14 @@ monitor_filters = colorize, esp32_exception_decoder
 
 ## Notes for Claude Code
 
-- This is **Phase 0/Phase 1** - focus on foundation and basic functionality
-- Start with minimal implementations, expand in later phases
-- Security (SMS sender verification) is CRITICAL from Phase 1
-- Test SIM7000G communication early - it's the highest risk item
+- **Phase 1 is complete** — all core functionality (door, SMS, auth, display, buttons) is working
+- **Next focus: Phase 4** (web UI, NVS configuration, credit monitoring)
+- Phase 2 environmental monitoring is partial (BME280 works, threshold alerts still TODO)
+- Security (SMS sender verification) is implemented and working
 - Keep main.cpp minimal - all logic in SystemController and subsystems
 - Use Serial.println() liberally for debugging
-- Document pin assignments as they are defined
-- OPEN command is optional but secure and fun to implement
+- Relay safety: see @docs/safety.md — relays must NEVER activate without explicit user action
+- SMS functions live in ModemHandler (pragmatic choice; may extract to SMSHandler later)
 
 ---
 
