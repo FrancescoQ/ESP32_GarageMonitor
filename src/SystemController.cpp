@@ -7,7 +7,11 @@
 #include "Config.h"
 
 SystemController::SystemController()
-  : m_buttons(m_door), m_lastSMSCheck(0), m_alertSent(false), m_doorWasOpen(false) {
+  : m_buttons(m_door),
+    m_display(m_door, m_water, m_modem),
+    m_lastSMSCheck(0),
+    m_alertSent(false),
+    m_doorWasOpen(false) {
 }
 
 void SystemController::begin() {
@@ -25,11 +29,17 @@ void SystemController::begin() {
   // Manual control buttons
   m_buttons.begin();
 
-  // Modem
+  // Display (init before modem so splash screen shows during modem startup)
+  m_display.begin();
+
+  // Modem (display shows splash during this slow init)
   if (m_modem.begin()) {
     Serial.println(F("[SYS] Modem initialized successfully"));
   } else {
     Serial.println(F("[SYS] Modem initialization failed"));
+    // TODO: show modem errors on LCD (e.g. "Modem: FAILED")
+    // once we have categorized failure modes (no SIM, no signal, etc.)
+    m_display.showMessage("Modem init", "FAILED");
   }
 
   Serial.println(F("[SYS] System ready"));
@@ -40,6 +50,7 @@ void SystemController::loop() {
   m_water.loop();
   m_modem.loop();
   m_buttons.loop();
+  m_display.loop();
 
   // Door state change detection
   bool doorOpen = m_door.isOpen();

@@ -6,6 +6,7 @@
 #include "WaterSensor.h"
 #include "ModemHandler.h"
 #include "MessageParser.h"
+#include "DisplayController.h"
 
 /**
  * @brief System state enumeration
@@ -36,6 +37,7 @@ private:
   ButtonController m_buttons;
   ModemHandler m_modem;
   MessageParser m_parser;
+  DisplayController m_display;
   unsigned long m_lastSMSCheck;
   bool m_alertSent;
   bool m_doorWasOpen;
