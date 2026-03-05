@@ -62,8 +62,8 @@ void WebUIController::begin(ConfigManager& config, const Door& door,
 
   // Register routes — static files from LittleFS
   m_server.on("/", HTTP_GET, [this]() { handleRoot(); });
-  m_server.serveStatic("/style.css", LittleFS, "/style.css", "max-age=86400");
-  m_server.serveStatic("/app.js", LittleFS, "/app.js", "max-age=86400");
+  m_server.serveStatic("/style.css", LittleFS, "/style.css", "no-cache");
+  m_server.serveStatic("/app.js", LittleFS, "/app.js", "no-cache");
 
   // API endpoints
   m_server.on("/api/users", HTTP_GET, [this]() { handleGetUsers(); });
