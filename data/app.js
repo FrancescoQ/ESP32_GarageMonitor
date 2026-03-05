@@ -5,6 +5,11 @@
  * and live diagnostics polling via fetch() API calls.
  */
 
+/** Append cache-busting timestamp to a URL */
+function noCache(url) {
+  return url + (url.indexOf('?') < 0 ? '?' : '&') + '_t=' + Date.now();
+}
+
 // Permission bit flags (must match Config.h)
 const P = {
   STATUS: 0x01,
@@ -62,7 +67,7 @@ function permBadges(p) {
 /** Load and display the user list */
 async function loadUsers() {
   try {
-    var r = await fetch('/api/users');
+    var r = await fetch(noCache('/api/users'));
     var d = await r.json();
     var tb = document.getElementById('userList');
     tb.innerHTML = d.users.map(function(u, i) {
@@ -120,7 +125,7 @@ async function addUser() {
 async function delUser(idx) {
   if (!confirm('Remove this user?')) return;
   try {
-    var r = await fetch('/api/users?index=' + idx, { method: 'DELETE' });
+    var r = await fetch(noCache('/api/users?index=' + idx), { method: 'DELETE' });
     var d = await r.json();
     if (d.ok) {
       msg('userMsg', 'User removed', true);
@@ -140,7 +145,7 @@ async function delUser(idx) {
 /** Load current settings into the form */
 async function loadSettings() {
   try {
-    var r = await fetch('/api/settings');
+    var r = await fetch(noCache('/api/settings'));
     var d = await r.json();
     document.getElementById('sDoorAlert').value = d.door_alert_min;
     document.getElementById('sSmsPoll').value = d.sms_poll_ms;
@@ -193,7 +198,7 @@ var diagTimer = null;
 /** Load live diagnostics and auto-refresh every 2s while tab is active */
 async function loadDiag() {
   try {
-    var r = await fetch('/api/diagnostics');
+    var r = await fetch(noCache('/api/diagnostics'));
     var d = await r.json();
     var el = document.getElementById('diagContent');
     el.innerHTML =
