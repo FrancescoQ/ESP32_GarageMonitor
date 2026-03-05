@@ -15,6 +15,7 @@
  *   GET  /api/settings   → JSON settings object
  *   POST /api/settings   → Update settings
  *   GET  /api/diagnostics → Live sensor readings
+ *   POST /api/reboot      → Reboot the ESP32
  */
 
 #include "WebUIController.h"
@@ -72,6 +73,7 @@ void WebUIController::begin(ConfigManager& config, const Door& door,
   m_server.on("/api/settings", HTTP_GET, [this]() { handleGetSettings(); });
   m_server.on("/api/settings", HTTP_POST, [this]() { handlePostSettings(); });
   m_server.on("/api/diagnostics", HTTP_GET, [this]() { handleGetDiagnostics(); });
+  m_server.on("/api/reboot", HTTP_POST, [this]() { handleReboot(); });
   m_server.onNotFound([this]() { handleNotFound(); });
 
   m_server.begin();
@@ -284,6 +286,13 @@ void WebUIController::handleGetDiagnostics() {
   String response;
   serializeJson(doc, response);
   m_server.send(200, "application/json", response);
+}
+
+void WebUIController::handleReboot() {
+  Serial.println(F("[WEB] Reboot requested via web UI"));
+  m_server.send(200, "application/json", "{\"ok\":true}");
+  delay(500);
+  ESP.restart();
 }
 
 void WebUIController::handleNotFound() {

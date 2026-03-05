@@ -67,5 +67,6 @@ private:
   void handleGetSettings();
   void handlePostSettings();
   void handleGetDiagnostics();
+  void handleReboot();
   void handleNotFound();
 };

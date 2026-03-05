@@ -121,6 +121,12 @@ export default function mockApiPlugin() {
           return json(res, getDiagnostics());
         }
 
+        // POST /api/reboot
+        if (path === '/api/reboot' && req.method === 'POST') {
+          console.log('[mock] Reboot requested (simulated)');
+          return json(res, { ok: true });
+        }
+
         next();
       });
     }
