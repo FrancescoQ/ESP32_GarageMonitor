@@ -23,6 +23,9 @@ static const char* KEY_SMS_POLL = "sms_poll_ms";
 static const char* KEY_DEEP_SLEEP = "deep_sleep_on";
 static const char* KEY_FWD_UNKNOWN = "fwd_unknown";
 static const char* KEY_NOTIFY_REBOOT = "notify_reboot";
+static const char* KEY_AUTO_REBOOT = "auto_reboot";
+static const char* KEY_REBOOT_DAYS = "reboot_days";
+static const char* KEY_REBOOT_HOUR = "reboot_hour";
 
 ConfigManager::ConfigManager()
   : m_userCount(0),
@@ -32,6 +35,9 @@ ConfigManager::ConfigManager()
   m_settings.deepSleepEnabled = DEFAULT_DEEP_SLEEP_ENABLED;
   m_settings.forwardUnknownSms = DEFAULT_FORWARD_UNKNOWN_SMS;
   m_settings.notifyReboot = DEFAULT_NOTIFY_REBOOT;
+  m_settings.autoRebootEnabled = DEFAULT_AUTO_REBOOT_ENABLED;
+  m_settings.autoRebootDays = DEFAULT_AUTO_REBOOT_DAYS;
+  m_settings.autoRebootHour = DEFAULT_AUTO_REBOOT_HOUR;
 }
 
 void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
@@ -65,7 +71,13 @@ void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
   Serial.print(F(", fwd_unknown="));
   Serial.print(m_settings.forwardUnknownSms ? "ON" : "OFF");
   Serial.print(F(", notify_reboot="));
-  Serial.println(m_settings.notifyReboot ? "ON" : "OFF");
+  Serial.print(m_settings.notifyReboot ? "ON" : "OFF");
+  Serial.print(F(", auto_reboot="));
+  Serial.print(m_settings.autoRebootEnabled ? "ON" : "OFF");
+  Serial.print(F(", reboot_days="));
+  Serial.print(m_settings.autoRebootDays);
+  Serial.print(F(", reboot_hour="));
+  Serial.println(m_settings.autoRebootHour);
 }
 
 // =============================================================================
@@ -180,7 +192,13 @@ void ConfigManager::setSettings(const SystemSettings& settings) {
   Serial.print(F(", fwd_unknown="));
   Serial.print(m_settings.forwardUnknownSms ? "ON" : "OFF");
   Serial.print(F(", notify_reboot="));
-  Serial.println(m_settings.notifyReboot ? "ON" : "OFF");
+  Serial.print(m_settings.notifyReboot ? "ON" : "OFF");
+  Serial.print(F(", auto_reboot="));
+  Serial.print(m_settings.autoRebootEnabled ? "ON" : "OFF");
+  Serial.print(F(", reboot_days="));
+  Serial.print(m_settings.autoRebootDays);
+  Serial.print(F(", reboot_hour="));
+  Serial.println(m_settings.autoRebootHour);
 }
 
 // =============================================================================
@@ -251,6 +269,9 @@ void ConfigManager::loadSettings() {
   m_settings.deepSleepEnabled = prefs.getBool(KEY_DEEP_SLEEP, DEFAULT_DEEP_SLEEP_ENABLED);
   m_settings.forwardUnknownSms = prefs.getBool(KEY_FWD_UNKNOWN, DEFAULT_FORWARD_UNKNOWN_SMS);
   m_settings.notifyReboot = prefs.getBool(KEY_NOTIFY_REBOOT, DEFAULT_NOTIFY_REBOOT);
+  m_settings.autoRebootEnabled = prefs.getBool(KEY_AUTO_REBOOT, DEFAULT_AUTO_REBOOT_ENABLED);
+  m_settings.autoRebootDays = prefs.getUInt(KEY_REBOOT_DAYS, DEFAULT_AUTO_REBOOT_DAYS);
+  m_settings.autoRebootHour = prefs.getChar(KEY_REBOOT_HOUR, DEFAULT_AUTO_REBOOT_HOUR);
 
   prefs.end();
 }
@@ -264,6 +285,9 @@ void ConfigManager::saveSettings() {
   prefs.putBool(KEY_DEEP_SLEEP, m_settings.deepSleepEnabled);
   prefs.putBool(KEY_FWD_UNKNOWN, m_settings.forwardUnknownSms);
   prefs.putBool(KEY_NOTIFY_REBOOT, m_settings.notifyReboot);
+  prefs.putBool(KEY_AUTO_REBOOT, m_settings.autoRebootEnabled);
+  prefs.putUInt(KEY_REBOOT_DAYS, m_settings.autoRebootDays);
+  prefs.putChar(KEY_REBOOT_HOUR, m_settings.autoRebootHour);
 
   prefs.end();
 }

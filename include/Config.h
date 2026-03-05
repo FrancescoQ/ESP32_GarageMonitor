@@ -78,8 +78,6 @@ const unsigned long RELAY_SEQUENCE_DELAY_MS = 500;        // Pause between STOP 
 const unsigned long DOOR_DEBOUNCE_MS = 50;                // Reed switch debounce
 const unsigned long WATER_DEBOUNCE_MS = 50;               // Water sensor debounce
 const int SMS_PURGE_THRESHOLD = 10;                       // Purge all SMS if count reaches this
-const unsigned long AUTO_REBOOT_INTERVAL_MS = 604800000UL;  // Weekly auto-reboot (7 days)
-const int AUTO_REBOOT_HOUR = 2;                             // Reboot at 2 AM local time
 const unsigned long REBOOT_CHECK_INTERVAL_MS = 900000UL;    // How often to check clock (15 min)
 
 // ============================================================================

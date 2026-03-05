@@ -147,6 +147,9 @@ async function loadSettings() {
     document.getElementById('sDeepSleep').checked = d.deep_sleep;
     document.getElementById('sFwdUnknown').checked = d.fwd_unknown;
     document.getElementById('sNotifyReboot').checked = d.notify_reboot;
+    document.getElementById('sAutoReboot').checked = d.auto_reboot;
+    document.getElementById('sRebootDays').value = d.reboot_days;
+    document.getElementById('sRebootHour').value = d.reboot_hour;
   } catch (e) {
     msg('setMsg', 'Failed to load settings', false);
   }
@@ -160,7 +163,10 @@ async function saveSettings() {
       sms_poll_ms: parseInt(document.getElementById('sSmsPoll').value),
       deep_sleep: document.getElementById('sDeepSleep').checked,
       fwd_unknown: document.getElementById('sFwdUnknown').checked,
-      notify_reboot: document.getElementById('sNotifyReboot').checked
+      notify_reboot: document.getElementById('sNotifyReboot').checked,
+      auto_reboot: document.getElementById('sAutoReboot').checked,
+      reboot_days: parseInt(document.getElementById('sRebootDays').value),
+      reboot_hour: parseInt(document.getElementById('sRebootHour').value)
     };
     var r = await fetch('/api/settings', {
       method: 'POST',

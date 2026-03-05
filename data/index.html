@@ -58,11 +58,13 @@
         <input id="sDoorAlert" type="number" min="1" max="1440">
         <span class="unit">&nbsp;min</span>
       </div>
+      <div class="hint">SMS alert if door stays open longer than this</div>
       <div class="form-row">
         <label>SMS poll</label>
         <input id="sSmsPoll" type="number" min="1000" max="60000" step="1000">
         <span class="unit">&nbsp;ms</span>
       </div>
+      <div class="hint">How often to check for incoming SMS</div>
       <div class="form-row">
         <label>Deep sleep</label>
         <label class="toggle">
@@ -70,6 +72,7 @@
           <span class="slider"></span>
         </label>
       </div>
+      <div class="hint">Enable low-power deep sleep between checks (Phase 5)</div>
       <div class="form-row">
         <label>Fwd unknown SMS</label>
         <label class="toggle">
@@ -77,6 +80,28 @@
           <span class="slider"></span>
         </label>
       </div>
+      <div class="hint">Forward SMS from unknown numbers to admin users</div>
+      <h3 class="section-title">Auto Reboot</h3>
+      <div class="form-row">
+        <label>Auto reboot</label>
+        <label class="toggle">
+          <input type="checkbox" id="sAutoReboot">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="hint">Periodically restart the system for reliability</div>
+      <div class="form-row">
+        <label>Reboot every</label>
+        <input id="sRebootDays" type="number" min="1" max="30">
+        <span class="unit">&nbsp;days</span>
+      </div>
+      <div class="hint">Days between automatic reboots (1-30)</div>
+      <div class="form-row">
+        <label>Reboot hour</label>
+        <input id="sRebootHour" type="number" min="-1" max="23">
+        <span class="unit">&nbsp;(-1=any)</span>
+      </div>
+      <div class="hint">Hour of day to reboot (0-23), or -1 to reboot as soon as interval elapses</div>
       <div class="form-row">
         <label>Reboot SMS notify</label>
         <label class="toggle">
@@ -84,6 +109,7 @@
           <span class="slider"></span>
         </label>
       </div>
+      <div class="hint">SMS admins before and after a scheduled reboot</div>
     </div>
     <button class="btn-save" onclick="saveSettings()">Save Settings</button>
   </div>

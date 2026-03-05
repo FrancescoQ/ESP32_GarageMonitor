@@ -180,6 +180,12 @@ input, select {
   color: #4fc3f7;
 }
 
+.hint {
+  font-size: .75em;
+  color: #777;
+  margin: -8px 0 25px;
+}
+
 /* Messages */
 .msg {
   padding: 8px;
@@ -232,11 +238,13 @@ input, select {
 }
 
 /* Toggle switch */
-.toggle {
+label.toggle {
   position: relative;
   display: inline-block;
   width: 44px;
+  min-width: 44px;
   height: 24px;
+  flex: none;
 }
 
 .toggle input {

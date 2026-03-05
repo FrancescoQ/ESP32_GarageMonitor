@@ -13,10 +13,7 @@
 
 #include "SystemController.h"
 #include "Config.h"
-
-// Survives ESP.restart() but cleared on power loss — perfect for
-// detecting that we came back from a scheduled auto-reboot.
-static RTC_DATA_ATTR bool s_autoRebootPending = false;
+#include <Preferences.h>
 
 SystemController::SystemController()
   : m_buttons(m_door),
@@ -145,41 +142,73 @@ void SystemController::beginNormalMode() {
     Serial.println(F("[SYS] Modem initialized successfully"));
 
     // After a scheduled auto-reboot, confirm system is back online
-    if (s_autoRebootPending) {
-      s_autoRebootPending = false;
+    Preferences rebootFlag;
+    rebootFlag.begin("system", false);
+    bool pending = rebootFlag.getBool("reboot", false);
+    if (pending) {
+      rebootFlag.putBool("reboot", false);
       Serial.println(F("[SYS] Back online after scheduled reboot"));
       if (m_config.getSettings().notifyReboot) {
         notifyAdmins("System back online after scheduled reboot.");
       }
     }
+    rebootFlag.end();
   } else {
     Serial.println(F("[SYS] Modem initialization failed"));
     m_display.showMessage("Modem init", "FAILED");
-    s_autoRebootPending = false;  // Clear flag even on modem failure
+    // Clear reboot flag even on modem failure
+    Preferences rebootFlag;
+    rebootFlag.begin("system", false);
+    rebootFlag.putBool("reboot", false);
+    rebootFlag.end();
   }
 }
 
 void SystemController::loopNormalMode() {
-  // Weekly auto-reboot at 2 AM for long-term reliability
-  if (millis() >= AUTO_REBOOT_INTERVAL_MS) {
-    static unsigned long lastRebootCheck = 0;
-    unsigned long now = millis();
-    if (now - lastRebootCheck >= REBOOT_CHECK_INTERVAL_MS) {
-      lastRebootCheck = now;
-      int hour = m_modem.getHour();
-      bool targetHour = (hour == AUTO_REBOOT_HOUR);
-      // Safety net: if time is unavailable for 24h past threshold, reboot anyway
-      bool forceReboot = (now >= AUTO_REBOOT_INTERVAL_MS + 86400000UL);
-      if (targetHour || forceReboot) {
-        Serial.print(F("[SYS] Scheduled weekly reboot (hour="));
-        Serial.print(hour);
-        Serial.println(F(")"));
-        if (m_config.getSettings().notifyReboot) {
+  // Auto-reboot for long-term reliability (runtime-configurable)
+  const SystemSettings& rebootSettings = m_config.getSettings();
+  if (rebootSettings.autoRebootEnabled) {
+    unsigned long rebootIntervalMs = (unsigned long)rebootSettings.autoRebootDays * 86400000UL;
+    if (millis() >= rebootIntervalMs) {
+      if (rebootSettings.autoRebootHour < 0) {
+        // No time-of-day constraint — reboot now
+        Serial.println(F("[SYS] Scheduled reboot (interval elapsed)"));
+        if (rebootSettings.notifyReboot) {
           notifyAdmins("System rebooting (scheduled restart).");
+          delay(5000);  // Allow SMS to transmit before restarting
         }
-        s_autoRebootPending = true;
-        delay(100);
+        {
+          Preferences rebootFlag;
+          rebootFlag.begin("system", false);
+          rebootFlag.putBool("reboot", true);
+          rebootFlag.end();
+        }
         ESP.restart();
+      }
+      static unsigned long lastRebootCheck = 0;
+      unsigned long rebootNow = millis();
+      if (rebootNow - lastRebootCheck >= REBOOT_CHECK_INTERVAL_MS) {
+        lastRebootCheck = rebootNow;
+        int hour = m_modem.getHour();
+        bool targetHour = (hour == rebootSettings.autoRebootHour);
+        // Safety net: if time is unavailable for 24h past threshold, reboot anyway
+        bool forceReboot = (rebootNow >= rebootIntervalMs + 86400000UL);
+        if (targetHour || forceReboot) {
+          Serial.print(F("[SYS] Scheduled reboot (hour="));
+          Serial.print(hour);
+          Serial.println(F(")"));
+          if (rebootSettings.notifyReboot) {
+            notifyAdmins("System rebooting (scheduled restart).");
+            delay(5000);  // Allow SMS to transmit before restarting
+          }
+          {
+            Preferences rebootFlag;
+            rebootFlag.begin("system", false);
+            rebootFlag.putBool("reboot", true);
+            rebootFlag.end();
+          }
+          ESP.restart();
+        }
       }
     }
   }

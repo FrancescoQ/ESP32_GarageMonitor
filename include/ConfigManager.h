@@ -38,6 +38,9 @@ struct SystemSettings {
   bool deepSleepEnabled;    // Deep sleep on/off (Phase 5)
   bool forwardUnknownSms;   // Forward SMS from unknown senders to admins
   bool notifyReboot;        // SMS admins before scheduled reboot
+  bool autoRebootEnabled;   // Auto-reboot on/off
+  uint32_t autoRebootDays;  // Days between auto-reboots (1-30)
+  int8_t autoRebootHour;    // Hour to reboot (0-23), or -1 for any time
 };
 
 // Default settings values
@@ -46,6 +49,9 @@ const uint32_t DEFAULT_SMS_POLL_MS = 5000;
 const bool DEFAULT_DEEP_SLEEP_ENABLED = false;
 const bool DEFAULT_FORWARD_UNKNOWN_SMS = true;
 const bool DEFAULT_NOTIFY_REBOOT = true;
+const bool DEFAULT_AUTO_REBOOT_ENABLED = true;
+const uint32_t DEFAULT_AUTO_REBOOT_DAYS = 7;
+const int8_t DEFAULT_AUTO_REBOOT_HOUR = 2;
 
 /**
  * @brief NVS-backed configuration manager
