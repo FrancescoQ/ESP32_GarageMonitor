@@ -22,6 +22,7 @@ static const char* KEY_DOOR_ALERT = "door_alert_min";
 static const char* KEY_SMS_POLL = "sms_poll_ms";
 static const char* KEY_DEEP_SLEEP = "deep_sleep_on";
 static const char* KEY_FWD_UNKNOWN = "fwd_unknown";
+static const char* KEY_NOTIFY_REBOOT = "notify_reboot";
 
 ConfigManager::ConfigManager()
   : m_userCount(0),
@@ -30,6 +31,7 @@ ConfigManager::ConfigManager()
   m_settings.smsPollMs = DEFAULT_SMS_POLL_MS;
   m_settings.deepSleepEnabled = DEFAULT_DEEP_SLEEP_ENABLED;
   m_settings.forwardUnknownSms = DEFAULT_FORWARD_UNKNOWN_SMS;
+  m_settings.notifyReboot = DEFAULT_NOTIFY_REBOOT;
 }
 
 void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
@@ -61,7 +63,9 @@ void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
   Serial.print(F("ms, deep_sleep="));
   Serial.print(m_settings.deepSleepEnabled ? "ON" : "OFF");
   Serial.print(F(", fwd_unknown="));
-  Serial.println(m_settings.forwardUnknownSms ? "ON" : "OFF");
+  Serial.print(m_settings.forwardUnknownSms ? "ON" : "OFF");
+  Serial.print(F(", notify_reboot="));
+  Serial.println(m_settings.notifyReboot ? "ON" : "OFF");
 }
 
 // =============================================================================
@@ -174,7 +178,9 @@ void ConfigManager::setSettings(const SystemSettings& settings) {
   Serial.print(F("ms, deep_sleep="));
   Serial.print(m_settings.deepSleepEnabled ? "ON" : "OFF");
   Serial.print(F(", fwd_unknown="));
-  Serial.println(m_settings.forwardUnknownSms ? "ON" : "OFF");
+  Serial.print(m_settings.forwardUnknownSms ? "ON" : "OFF");
+  Serial.print(F(", notify_reboot="));
+  Serial.println(m_settings.notifyReboot ? "ON" : "OFF");
 }
 
 // =============================================================================
@@ -244,6 +250,7 @@ void ConfigManager::loadSettings() {
   m_settings.smsPollMs = prefs.getUInt(KEY_SMS_POLL, DEFAULT_SMS_POLL_MS);
   m_settings.deepSleepEnabled = prefs.getBool(KEY_DEEP_SLEEP, DEFAULT_DEEP_SLEEP_ENABLED);
   m_settings.forwardUnknownSms = prefs.getBool(KEY_FWD_UNKNOWN, DEFAULT_FORWARD_UNKNOWN_SMS);
+  m_settings.notifyReboot = prefs.getBool(KEY_NOTIFY_REBOOT, DEFAULT_NOTIFY_REBOOT);
 
   prefs.end();
 }
@@ -256,6 +263,7 @@ void ConfigManager::saveSettings() {
   prefs.putUInt(KEY_SMS_POLL, m_settings.smsPollMs);
   prefs.putBool(KEY_DEEP_SLEEP, m_settings.deepSleepEnabled);
   prefs.putBool(KEY_FWD_UNKNOWN, m_settings.forwardUnknownSms);
+  prefs.putBool(KEY_NOTIFY_REBOOT, m_settings.notifyReboot);
 
   prefs.end();
 }

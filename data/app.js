@@ -146,6 +146,7 @@ async function loadSettings() {
     document.getElementById('sSmsPoll').value = d.sms_poll_ms;
     document.getElementById('sDeepSleep').checked = d.deep_sleep;
     document.getElementById('sFwdUnknown').checked = d.fwd_unknown;
+    document.getElementById('sNotifyReboot').checked = d.notify_reboot;
   } catch (e) {
     msg('setMsg', 'Failed to load settings', false);
   }
@@ -158,7 +159,8 @@ async function saveSettings() {
       door_alert_min: parseInt(document.getElementById('sDoorAlert').value),
       sms_poll_ms: parseInt(document.getElementById('sSmsPoll').value),
       deep_sleep: document.getElementById('sDeepSleep').checked,
-      fwd_unknown: document.getElementById('sFwdUnknown').checked
+      fwd_unknown: document.getElementById('sFwdUnknown').checked,
+      notify_reboot: document.getElementById('sNotifyReboot').checked
     };
     var r = await fetch('/api/settings', {
       method: 'POST',

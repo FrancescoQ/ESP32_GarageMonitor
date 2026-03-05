@@ -177,6 +177,7 @@ void WebUIController::handleGetSettings() {
   doc["sms_poll_ms"] = s.smsPollMs;
   doc["deep_sleep"] = s.deepSleepEnabled;
   doc["fwd_unknown"] = s.forwardUnknownSms;
+  doc["notify_reboot"] = s.notifyReboot;
 
   String response;
   serializeJson(doc, response);
@@ -215,6 +216,9 @@ void WebUIController::handlePostSettings() {
   }
   if (doc.containsKey("fwd_unknown")) {
     s.forwardUnknownSms = doc["fwd_unknown"];
+  }
+  if (doc.containsKey("notify_reboot")) {
+    s.notifyReboot = doc["notify_reboot"];
   }
 
   m_config->setSettings(s);

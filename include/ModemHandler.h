@@ -139,6 +139,16 @@ public:
   bool deleteAllSMS();
 
   /**
+   * @brief Get current hour from modem's network-synced clock
+   *
+   * Queries AT+CCLK? and parses the hour from the response.
+   * The modem syncs time from the cellular network (AT+CLTS=1).
+   *
+   * @return Hour (0-23), or -1 if clock could not be read
+   */
+  int getHour();
+
+  /**
    * @brief Access the TinyGsm instance for SMS/data operations
    * @return Reference to internal TinyGsm modem object
    */

@@ -77,6 +77,9 @@ bool ModemHandler::begin() {
     delay(7000);
   }
 
+  // Enable network time sync so AT+CCLK? returns accurate local time
+  sendCommand("AT+CLTS=1", 2000);
+
   // Wait for network registration
   Serial.println(F("[MODEM] Waiting for network (max 60s)..."));
   if (m_modem.waitForNetwork(60000L, true)) {
@@ -359,6 +362,28 @@ bool ModemHandler::deleteAllSMS() {
   }
 
   return success;
+}
+
+int ModemHandler::getHour() {
+  String response = sendCommand("AT+CCLK?", 2000);
+
+  // Response format: +CCLK: "YY/MM/DD,HH:MM:SS±TZ"
+  int pos = response.indexOf("+CCLK:");
+  if (pos < 0) return -1;
+
+  // Find comma between date and time
+  int commaPos = response.indexOf(',', pos);
+  if (commaPos < 0 || commaPos + 2 >= (int)response.length()) return -1;
+
+  // Extract and validate hour digits
+  char h1 = response.charAt(commaPos + 1);
+  char h2 = response.charAt(commaPos + 2);
+  if (!isDigit(h1) || !isDigit(h2)) return -1;
+
+  int hour = (h1 - '0') * 10 + (h2 - '0');
+  if (hour > 23) return -1;
+
+  return hour;
 }
 
 TinyGsm& ModemHandler::getModem() {

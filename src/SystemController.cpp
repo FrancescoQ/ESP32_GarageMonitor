@@ -14,6 +14,10 @@
 #include "SystemController.h"
 #include "Config.h"
 
+// Survives ESP.restart() but cleared on power loss — perfect for
+// detecting that we came back from a scheduled auto-reboot.
+static RTC_DATA_ATTR bool s_autoRebootPending = false;
+
 SystemController::SystemController()
   : m_buttons(m_door),
     m_display(m_door, m_water, m_modem, m_env),
@@ -41,7 +45,15 @@ void SystemController::begin() {
     Serial.println(F("[SYS] Normal mode"));
   }
 
-  // 3. Sensors and buttons (always, both modes)
+  // 3. I2C bus (shared by LCD and BME280)
+  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+  Serial.print(F("[SYS] I2C initialized (SDA="));
+  Serial.print(PIN_I2C_SDA);
+  Serial.print(F(", SCL="));
+  Serial.print(PIN_I2C_SCL);
+  Serial.println(F(")"));
+
+  // 4. Sensors and buttons (always, both modes)
   m_water.begin();
 
   if (!m_env.begin()) {
@@ -50,16 +62,16 @@ void SystemController::begin() {
 
   m_buttons.begin();
 
-  // 4. ConfigManager (NVS load — both modes need user data)
+  // 5. ConfigManager (NVS load — both modes need user data)
   m_config.begin(AUTHORIZED_USERS);
 
   // Wire MessageParser to use ConfigManager for user lookups
   m_parser.setConfigManager(&m_config);
 
-  // 5. Display
+  // 6. Display
   m_display.begin();
 
-  // 6. Mode-specific initialization
+  // 7. Mode-specific initialization
   if (m_setupMode) {
     beginSetupMode();
   } else {
@@ -131,13 +143,47 @@ void SystemController::beginNormalMode() {
   // Modem (display shows splash during this slow init)
   if (m_modem.begin()) {
     Serial.println(F("[SYS] Modem initialized successfully"));
+
+    // After a scheduled auto-reboot, confirm system is back online
+    if (s_autoRebootPending) {
+      s_autoRebootPending = false;
+      Serial.println(F("[SYS] Back online after scheduled reboot"));
+      if (m_config.getSettings().notifyReboot) {
+        notifyAdmins("System back online after scheduled reboot.");
+      }
+    }
   } else {
     Serial.println(F("[SYS] Modem initialization failed"));
     m_display.showMessage("Modem init", "FAILED");
+    s_autoRebootPending = false;  // Clear flag even on modem failure
   }
 }
 
 void SystemController::loopNormalMode() {
+  // Weekly auto-reboot at 2 AM for long-term reliability
+  if (millis() >= AUTO_REBOOT_INTERVAL_MS) {
+    static unsigned long lastRebootCheck = 0;
+    unsigned long now = millis();
+    if (now - lastRebootCheck >= REBOOT_CHECK_INTERVAL_MS) {
+      lastRebootCheck = now;
+      int hour = m_modem.getHour();
+      bool targetHour = (hour == AUTO_REBOOT_HOUR);
+      // Safety net: if time is unavailable for 24h past threshold, reboot anyway
+      bool forceReboot = (now >= AUTO_REBOOT_INTERVAL_MS + 86400000UL);
+      if (targetHour || forceReboot) {
+        Serial.print(F("[SYS] Scheduled weekly reboot (hour="));
+        Serial.print(hour);
+        Serial.println(F(")"));
+        if (m_config.getSettings().notifyReboot) {
+          notifyAdmins("System rebooting (scheduled restart).");
+        }
+        s_autoRebootPending = true;
+        delay(100);
+        ESP.restart();
+      }
+    }
+  }
+
   m_modem.loop();
 
   // Door state change detection

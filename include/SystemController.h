@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <Wire.h>
 #include "Door.h"
 #include "ButtonController.h"
 #include "WaterSensor.h"
