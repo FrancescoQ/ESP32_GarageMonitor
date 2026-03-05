@@ -163,6 +163,11 @@ input, select {
   flex: 1;
 }
 
+.form-row input[type="checkbox"] {
+  display: inline;
+  width: auto;
+}
+
 .unit {
   color: #aaa;
   font-size: .85em;
@@ -195,15 +200,10 @@ input, select {
 
 /* Permission checkboxes */
 .perm-grid {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .perm-grid label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: block;
   font-size: .85em;
   cursor: pointer;
 }

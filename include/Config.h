@@ -86,7 +86,7 @@ const unsigned long DOOR_ALERT_DELAY_MS = DOOR_ALERT_DELAY_MIN * 60 * 1000; // M
 // Display Timing
 // ============================================================================
 const unsigned long DISPLAY_ON_DURATION_MS = 30000;     // Auto-off after this (page mode)
-const unsigned long NOTIFICATION_DURATION_MS = 10000;    // Notification overlay duration
+const unsigned long NOTIFICATION_DURATION_MS = 5000;    // Notification overlay duration
 const unsigned long DISPLAY_REFRESH_INTERVAL_MS = 1000;  // Page content refresh rate
 const unsigned long FUNC_REBOOT_HOLD_MS = 5000;          // Hold FUNC this long to reboot
 
