@@ -176,6 +176,7 @@ void WebUIController::handleGetSettings() {
   doc["door_alert_min"] = s.doorAlertMin;
   doc["sms_poll_ms"] = s.smsPollMs;
   doc["deep_sleep"] = s.deepSleepEnabled;
+  doc["fwd_unknown"] = s.forwardUnknownSms;
 
   String response;
   serializeJson(doc, response);
@@ -211,6 +212,9 @@ void WebUIController::handlePostSettings() {
   }
   if (doc.containsKey("deep_sleep")) {
     s.deepSleepEnabled = doc["deep_sleep"];
+  }
+  if (doc.containsKey("fwd_unknown")) {
+    s.forwardUnknownSms = doc["fwd_unknown"];
   }
 
   m_config->setSettings(s);

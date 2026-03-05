@@ -257,6 +257,11 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
   if (!result.isAuthorized) {
     Serial.print(F("[SYS] Unauthorized sender: "));
     Serial.println(sms.sender);
+    if (m_config.getSettings().forwardUnknownSms) {
+      String fwd = "FWD from " + sms.sender + ":\n" + sms.message;
+      Serial.println(F("[SYS] Forwarding unknown SMS to admins"));
+      notifyAdmins(fwd.c_str());
+    }
     return;
   }
 

@@ -21,6 +21,7 @@ static const char* NS_SETTINGS = "settings";
 static const char* KEY_DOOR_ALERT = "door_alert_min";
 static const char* KEY_SMS_POLL = "sms_poll_ms";
 static const char* KEY_DEEP_SLEEP = "deep_sleep_on";
+static const char* KEY_FWD_UNKNOWN = "fwd_unknown";
 
 ConfigManager::ConfigManager()
   : m_userCount(0),
@@ -28,6 +29,7 @@ ConfigManager::ConfigManager()
   m_settings.doorAlertMin = DEFAULT_DOOR_ALERT_MIN;
   m_settings.smsPollMs = DEFAULT_SMS_POLL_MS;
   m_settings.deepSleepEnabled = DEFAULT_DEEP_SLEEP_ENABLED;
+  m_settings.forwardUnknownSms = DEFAULT_FORWARD_UNKNOWN_SMS;
 }
 
 void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
@@ -57,7 +59,9 @@ void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
   Serial.print(F("min, sms_poll="));
   Serial.print(m_settings.smsPollMs);
   Serial.print(F("ms, deep_sleep="));
-  Serial.println(m_settings.deepSleepEnabled ? "ON" : "OFF");
+  Serial.print(m_settings.deepSleepEnabled ? "ON" : "OFF");
+  Serial.print(F(", fwd_unknown="));
+  Serial.println(m_settings.forwardUnknownSms ? "ON" : "OFF");
 }
 
 // =============================================================================
@@ -168,7 +172,9 @@ void ConfigManager::setSettings(const SystemSettings& settings) {
   Serial.print(F("min, sms_poll="));
   Serial.print(m_settings.smsPollMs);
   Serial.print(F("ms, deep_sleep="));
-  Serial.println(m_settings.deepSleepEnabled ? "ON" : "OFF");
+  Serial.print(m_settings.deepSleepEnabled ? "ON" : "OFF");
+  Serial.print(F(", fwd_unknown="));
+  Serial.println(m_settings.forwardUnknownSms ? "ON" : "OFF");
 }
 
 // =============================================================================
@@ -185,7 +191,7 @@ void ConfigManager::loadUsers() {
   }
 
   for (int i = 0; i < m_userCount; i++) {
-    char phoneKey[12], permsKey[12], nameKey[12];
+    char phoneKey[16], permsKey[16], nameKey[16];
     snprintf(phoneKey, sizeof(phoneKey), "phone_%d", i);
     snprintf(permsKey, sizeof(permsKey), "perms_%d", i);
     snprintf(nameKey, sizeof(nameKey), "name_%d", i);
@@ -205,7 +211,7 @@ void ConfigManager::saveUsers() {
   prefs.putUChar("count", m_userCount);
 
   for (int i = 0; i < m_userCount; i++) {
-    char phoneKey[12], permsKey[12], nameKey[12];
+    char phoneKey[16], permsKey[16], nameKey[16];
     snprintf(phoneKey, sizeof(phoneKey), "phone_%d", i);
     snprintf(permsKey, sizeof(permsKey), "perms_%d", i);
     snprintf(nameKey, sizeof(nameKey), "name_%d", i);
@@ -217,7 +223,7 @@ void ConfigManager::saveUsers() {
 
   // Clean up any stale entries beyond current count
   for (int i = m_userCount; i < MAX_NVS_USERS; i++) {
-    char phoneKey[12], permsKey[12], nameKey[12];
+    char phoneKey[16], permsKey[16], nameKey[16];
     snprintf(phoneKey, sizeof(phoneKey), "phone_%d", i);
     snprintf(permsKey, sizeof(permsKey), "perms_%d", i);
     snprintf(nameKey, sizeof(nameKey), "name_%d", i);
@@ -237,6 +243,7 @@ void ConfigManager::loadSettings() {
   m_settings.doorAlertMin = prefs.getUInt(KEY_DOOR_ALERT, DEFAULT_DOOR_ALERT_MIN);
   m_settings.smsPollMs = prefs.getUInt(KEY_SMS_POLL, DEFAULT_SMS_POLL_MS);
   m_settings.deepSleepEnabled = prefs.getBool(KEY_DEEP_SLEEP, DEFAULT_DEEP_SLEEP_ENABLED);
+  m_settings.forwardUnknownSms = prefs.getBool(KEY_FWD_UNKNOWN, DEFAULT_FORWARD_UNKNOWN_SMS);
 
   prefs.end();
 }
@@ -248,6 +255,7 @@ void ConfigManager::saveSettings() {
   prefs.putUInt(KEY_DOOR_ALERT, m_settings.doorAlertMin);
   prefs.putUInt(KEY_SMS_POLL, m_settings.smsPollMs);
   prefs.putBool(KEY_DEEP_SLEEP, m_settings.deepSleepEnabled);
+  prefs.putBool(KEY_FWD_UNKNOWN, m_settings.forwardUnknownSms);
 
   prefs.end();
 }

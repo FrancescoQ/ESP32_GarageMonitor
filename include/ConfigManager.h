@@ -36,12 +36,14 @@ struct SystemSettings {
   uint32_t doorAlertMin;    // Minutes before door-open alert
   uint32_t smsPollMs;       // SMS polling interval in ms
   bool deepSleepEnabled;    // Deep sleep on/off (Phase 5)
+  bool forwardUnknownSms;   // Forward SMS from unknown senders to admins
 };
 
 // Default settings values
 const uint32_t DEFAULT_DOOR_ALERT_MIN = 30;
 const uint32_t DEFAULT_SMS_POLL_MS = 5000;
 const bool DEFAULT_DEEP_SLEEP_ENABLED = false;
+const bool DEFAULT_FORWARD_UNKNOWN_SMS = true;
 
 /**
  * @brief NVS-backed configuration manager

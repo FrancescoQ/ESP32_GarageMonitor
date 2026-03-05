@@ -77,10 +77,7 @@ const unsigned long RELAY_PULSE_MS = 200;                 // Momentary relay act
 const unsigned long RELAY_SEQUENCE_DELAY_MS = 500;        // Pause between STOP and OPEN/CLOSE
 const unsigned long DOOR_DEBOUNCE_MS = 50;                // Reed switch debounce
 const unsigned long WATER_DEBOUNCE_MS = 50;               // Water sensor debounce
-const unsigned long SMS_POLL_INTERVAL_MS = 5000;          // Poll for incoming SMS every 5s
 const int SMS_PURGE_THRESHOLD = 10;                       // Purge all SMS if count reaches this
-const unsigned long DOOR_ALERT_DELAY_MIN = 30;            // Minutes before door-open alert
-const unsigned long DOOR_ALERT_DELAY_MS = DOOR_ALERT_DELAY_MIN * 60 * 1000; // Milliseconds before door-open alert
 
 // ============================================================================
 // Display Timing
