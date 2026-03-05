@@ -4,7 +4,8 @@
       "WebFetch(domain:www.waveshare.com)",
       "WebSearch",
       "Bash(git check-ignore include/Secrets.h)",
-      "Bash(find /workspace/src /workspace/include -type f \\\\\\( -name \"*.h\" -o -name \"*.cpp\" \\\\\\) 2>/dev/null | sort)"
+      "Bash(find /workspace/src /workspace/include -type f \\\\\\( -name \"*.h\" -o -name \"*.cpp\" \\\\\\) 2>/dev/null | sort)",
+      "Bash(find /workspace/webui_example -type f -name \"*.json\" -o -name \"*.js\" -o -name \"*.html\" -o -name \"*.css\" -o -name \"*.config.*\" 2>/dev/null | head -20)"
     ]
   }
 }
