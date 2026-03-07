@@ -75,6 +75,7 @@ private:
   void loopNormalMode();
   void loopSetupMode();
 
+  void purgeBootMessages();
   void handleSMS(const ReceivedSMS& sms);
   void notifyAdmins(const char* message);
   void notifyAllUsers(const char* message);

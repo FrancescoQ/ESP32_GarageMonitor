@@ -153,6 +153,8 @@ void SystemController::beginNormalMode() {
       }
     }
     rebootFlag.end();
+
+    purgeBootMessages();
   } else {
     Serial.println(F("[SYS] Modem initialization failed"));
     m_display.showMessage("Modem init", "FAILED");
@@ -162,6 +164,26 @@ void SystemController::beginNormalMode() {
     rebootFlag.putBool("reboot", false);
     rebootFlag.end();
   }
+}
+
+void SystemController::purgeBootMessages() {
+  int count = m_modem.checkForSMS();
+  if (count <= 0) {
+    return;
+  }
+
+  Serial.print(F("[SYS] Boot: found "));
+  Serial.print(count);
+  Serial.println(F(" queued SMS — purging for safety"));
+
+  m_modem.deleteAllSMS();
+
+  // Notify admins
+  char msg[100];
+  snprintf(msg, sizeof(msg),
+    "System restarted. %d queued SMS discarded for safety. "
+    "Resend commands if needed.", count);
+  notifyAdmins(msg);
 }
 
 void SystemController::loopNormalMode() {

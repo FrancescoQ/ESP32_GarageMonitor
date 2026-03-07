@@ -51,9 +51,9 @@ const int PIN_WATER_SENSOR = 32;
 // ============================================================================
 // Relay Outputs (Door Control)
 // ============================================================================
-const int PIN_RELAY_CLOSE = 25;  // Door close relay
+const int PIN_RELAY_CLOSE = 27;  // Door close relay
 const int PIN_RELAY_STOP = 26;   // Door stop relay
-const int PIN_RELAY_OPEN = 27;   // Door open relay
+const int PIN_RELAY_OPEN = 25;   // Door open relay
 
 // Relay logic: using HIGH trigger jumper (5V module with 3.3V ESP32)
 const bool RELAY_ACTIVE_LOW = false;

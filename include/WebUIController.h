@@ -53,7 +53,7 @@ public:
   String getIPAddress() const;
 
 private:
-  WebServer m_server;
+  WebServer* m_server;
   ConfigManager* m_config;
   const Door* m_door;
   const WaterSensor* m_water;

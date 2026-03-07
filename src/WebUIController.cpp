@@ -29,7 +29,7 @@
 #include <ArduinoJson.h>
 
 WebUIController::WebUIController()
-  : m_server(WEB_SERVER_PORT),
+  : m_server(nullptr),
     m_config(nullptr),
     m_door(nullptr),
     m_water(nullptr),
@@ -61,27 +61,32 @@ void WebUIController::begin(ConfigManager& config, const Door& door,
   Serial.print(F("[WEB] AP IP: "));
   Serial.println(WiFi.softAPIP());
 
+  // Create server only when actually needed (saves RAM in normal mode)
+  m_server = new WebServer(WEB_SERVER_PORT);
+
   // Register routes — static files from LittleFS
-  m_server.on("/", HTTP_GET, [this]() { handleRoot(); });
-  m_server.serveStatic("/app.js", LittleFS, "/app.js", "no-cache");
-  m_server.serveStatic("/app.css", LittleFS, "/app.css", "no-cache");
+  m_server->on("/", HTTP_GET, [this]() { handleRoot(); });
+  m_server->serveStatic("/app.js", LittleFS, "/app.js", "no-cache");
+  m_server->serveStatic("/app.css", LittleFS, "/app.css", "no-cache");
 
   // API endpoints
-  m_server.on("/api/users", HTTP_GET, [this]() { handleGetUsers(); });
-  m_server.on("/api/users", HTTP_POST, [this]() { handlePostUser(); });
-  m_server.on("/api/users", HTTP_DELETE, [this]() { handleDeleteUser(); });
-  m_server.on("/api/settings", HTTP_GET, [this]() { handleGetSettings(); });
-  m_server.on("/api/settings", HTTP_POST, [this]() { handlePostSettings(); });
-  m_server.on("/api/diagnostics", HTTP_GET, [this]() { handleGetDiagnostics(); });
-  m_server.on("/api/reboot", HTTP_POST, [this]() { handleReboot(); });
-  m_server.onNotFound([this]() { handleNotFound(); });
+  m_server->on("/api/users", HTTP_GET, [this]() { handleGetUsers(); });
+  m_server->on("/api/users", HTTP_POST, [this]() { handlePostUser(); });
+  m_server->on("/api/users", HTTP_DELETE, [this]() { handleDeleteUser(); });
+  m_server->on("/api/settings", HTTP_GET, [this]() { handleGetSettings(); });
+  m_server->on("/api/settings", HTTP_POST, [this]() { handlePostSettings(); });
+  m_server->on("/api/diagnostics", HTTP_GET, [this]() { handleGetDiagnostics(); });
+  m_server->on("/api/reboot", HTTP_POST, [this]() { handleReboot(); });
+  m_server->onNotFound([this]() { handleNotFound(); });
 
-  m_server.begin();
+  m_server->begin();
   Serial.println(F("[WEB] Web server started"));
 }
 
 void WebUIController::loop() {
-  m_server.handleClient();
+  if (m_server) {
+    m_server->handleClient();
+  }
 }
 
 String WebUIController::getIPAddress() const {
@@ -95,10 +100,10 @@ String WebUIController::getIPAddress() const {
 void WebUIController::handleRoot() {
   File file = LittleFS.open("/index.html", "r");
   if (!file) {
-    m_server.send(500, "text/plain", "index.html not found — upload filesystem with: pio run -t uploadfs");
+    m_server->send(500, "text/plain", "index.html not found — upload filesystem with: pio run -t uploadfs");
     return;
   }
-  m_server.streamFile(file, "text/html");
+  m_server->streamFile(file, "text/html");
   file.close();
 }
 
@@ -118,19 +123,19 @@ void WebUIController::handleGetUsers() {
 
   String response;
   serializeJson(doc, response);
-  m_server.send(200, "application/json", response);
+  m_server->send(200, "application/json", response);
 }
 
 void WebUIController::handlePostUser() {
-  if (!m_server.hasArg("plain")) {
-    m_server.send(400, "application/json", "{\"ok\":false,\"error\":\"No body\"}");
+  if (!m_server->hasArg("plain")) {
+    m_server->send(400, "application/json", "{\"ok\":false,\"error\":\"No body\"}");
     return;
   }
 
   DynamicJsonDocument doc(256);
-  DeserializationError err = deserializeJson(doc, m_server.arg("plain"));
+  DeserializationError err = deserializeJson(doc, m_server->arg("plain"));
   if (err) {
-    m_server.send(400, "application/json", "{\"ok\":false,\"error\":\"Invalid JSON\"}");
+    m_server->send(400, "application/json", "{\"ok\":false,\"error\":\"Invalid JSON\"}");
     return;
   }
 
@@ -139,7 +144,7 @@ void WebUIController::handlePostUser() {
   uint8_t perms = doc["permissions"] | 0;
 
   if (name == nullptr || phone == nullptr || strlen(name) == 0 || strlen(phone) == 0) {
-    m_server.send(400, "application/json",
+    m_server->send(400, "application/json",
                   "{\"ok\":false,\"error\":\"Name and phone required\"}");
     return;
   }
@@ -148,25 +153,25 @@ void WebUIController::handlePostUser() {
   String normalizedPhone = MessageParser::normalizePhoneNumber(String(phone));
 
   if (m_config->addUser(normalizedPhone, perms, String(name))) {
-    m_server.send(200, "application/json", "{\"ok\":true}");
+    m_server->send(200, "application/json", "{\"ok\":true}");
   } else {
-    m_server.send(400, "application/json",
+    m_server->send(400, "application/json",
                   "{\"ok\":false,\"error\":\"Full or duplicate\"}");
   }
 }
 
 void WebUIController::handleDeleteUser() {
-  if (!m_server.hasArg("index")) {
-    m_server.send(400, "application/json", "{\"ok\":false,\"error\":\"Missing index\"}");
+  if (!m_server->hasArg("index")) {
+    m_server->send(400, "application/json", "{\"ok\":false,\"error\":\"Missing index\"}");
     return;
   }
 
-  int index = m_server.arg("index").toInt();
+  int index = m_server->arg("index").toInt();
 
   if (m_config->removeUser(index)) {
-    m_server.send(200, "application/json", "{\"ok\":true}");
+    m_server->send(200, "application/json", "{\"ok\":true}");
   } else {
-    m_server.send(400, "application/json",
+    m_server->send(400, "application/json",
                   "{\"ok\":false,\"error\":\"Invalid index\"}");
   }
 }
@@ -186,19 +191,19 @@ void WebUIController::handleGetSettings() {
 
   String response;
   serializeJson(doc, response);
-  m_server.send(200, "application/json", response);
+  m_server->send(200, "application/json", response);
 }
 
 void WebUIController::handlePostSettings() {
-  if (!m_server.hasArg("plain")) {
-    m_server.send(400, "application/json", "{\"ok\":false,\"error\":\"No body\"}");
+  if (!m_server->hasArg("plain")) {
+    m_server->send(400, "application/json", "{\"ok\":false,\"error\":\"No body\"}");
     return;
   }
 
   DynamicJsonDocument doc(256);
-  DeserializationError err = deserializeJson(doc, m_server.arg("plain"));
+  DeserializationError err = deserializeJson(doc, m_server->arg("plain"));
   if (err) {
-    m_server.send(400, "application/json", "{\"ok\":false,\"error\":\"Invalid JSON\"}");
+    m_server->send(400, "application/json", "{\"ok\":false,\"error\":\"Invalid JSON\"}");
     return;
   }
 
@@ -242,7 +247,7 @@ void WebUIController::handlePostSettings() {
   }
 
   m_config->setSettings(s);
-  m_server.send(200, "application/json", "{\"ok\":true}");
+  m_server->send(200, "application/json", "{\"ok\":true}");
 }
 
 void WebUIController::handleGetDiagnostics() {
@@ -285,16 +290,16 @@ void WebUIController::handleGetDiagnostics() {
 
   String response;
   serializeJson(doc, response);
-  m_server.send(200, "application/json", response);
+  m_server->send(200, "application/json", response);
 }
 
 void WebUIController::handleReboot() {
   Serial.println(F("[WEB] Reboot requested via web UI"));
-  m_server.send(200, "application/json", "{\"ok\":true}");
+  m_server->send(200, "application/json", "{\"ok\":true}");
   delay(500);
   ESP.restart();
 }
 
 void WebUIController::handleNotFound() {
-  m_server.send(404, "text/plain", "Not found");
+  m_server->send(404, "text/plain", "Not found");
 }
