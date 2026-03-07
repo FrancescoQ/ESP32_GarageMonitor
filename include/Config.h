@@ -78,6 +78,7 @@ const unsigned long RELAY_SEQUENCE_DELAY_MS = 500;        // Pause between STOP 
 const unsigned long DOOR_DEBOUNCE_MS = 50;                // Reed switch debounce
 const unsigned long WATER_DEBOUNCE_MS = 50;               // Water sensor debounce
 const int SMS_PURGE_THRESHOLD = 10;                       // Purge all SMS if count reaches this
+const char* const CREDIT_CHECK_NUMBER = "400";            // Iliad credit inquiry service number
 const unsigned long REBOOT_CHECK_INTERVAL_MS = 900000UL;    // How often to check clock (15 min)
 
 // ============================================================================

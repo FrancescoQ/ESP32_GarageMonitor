@@ -76,9 +76,10 @@ SMSCommand MessageParser::parseCommand(const String& message) {
   trimmed.trim();
   trimmed.toUpperCase();
 
-  if (trimmed == "STATUS") return SMSCommand::STATUS;
-  if (trimmed == "CLOSE") return SMSCommand::CLOSE;
-  if (trimmed == "OPEN") return SMSCommand::OPEN;
+  if (trimmed == "STATUS" || trimmed == "STATO") return SMSCommand::STATUS;
+  if (trimmed == "CLOSE" || trimmed == "CHIUDI") return SMSCommand::CLOSE;
+  if (trimmed == "OPEN" || trimmed == "APRI") return SMSCommand::OPEN;
+  if (trimmed == "CREDIT" || trimmed == "CREDITO") return SMSCommand::CREDIT;
 
   return SMSCommand::UNKNOWN;
 }
@@ -88,6 +89,7 @@ uint8_t MessageParser::requiredPermission(SMSCommand cmd) {
     case SMSCommand::STATUS: return PERM_STATUS;
     case SMSCommand::CLOSE:  return PERM_CLOSE;
     case SMSCommand::OPEN:   return PERM_OPEN;
+    case SMSCommand::CREDIT:  return PERM_CONFIG;
     case SMSCommand::UNKNOWN: return 0;
   }
   return 0;

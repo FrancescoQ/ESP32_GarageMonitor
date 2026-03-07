@@ -52,6 +52,7 @@ enum class SMSCommand {
   STATUS,
   CLOSE,
   OPEN,
+  CREDIT,
   UNKNOWN
 };
 

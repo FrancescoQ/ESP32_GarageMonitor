@@ -149,7 +149,7 @@ void SystemController::beginNormalMode() {
       rebootFlag.putBool("reboot", false);
       Serial.println(F("[SYS] Back online after scheduled reboot"));
       if (m_config.getSettings().notifyReboot) {
-        notifyAdmins("System back online after scheduled reboot.");
+        notifyAdmins("Sistema online dopo riavvio programmato.");
       }
     }
     rebootFlag.end();
@@ -181,8 +181,8 @@ void SystemController::purgeBootMessages() {
   // Notify admins
   char msg[100];
   snprintf(msg, sizeof(msg),
-    "System restarted. %d queued SMS discarded for safety. "
-    "Resend commands if needed.", count);
+    "Sistema riavviato. %d SMS in coda eliminati per sicurezza. "
+    "Reinviare i comandi se necessario.", count);
   notifyAdmins(msg);
 }
 
@@ -196,7 +196,7 @@ void SystemController::loopNormalMode() {
         // No time-of-day constraint — reboot now
         Serial.println(F("[SYS] Scheduled reboot (interval elapsed)"));
         if (rebootSettings.notifyReboot) {
-          notifyAdmins("System rebooting (scheduled restart).");
+          notifyAdmins("Sistema in riavvio (riavvio programmato).");
           delay(5000);  // Allow SMS to transmit before restarting
         }
         {
@@ -220,7 +220,7 @@ void SystemController::loopNormalMode() {
           Serial.print(hour);
           Serial.println(F(")"));
           if (rebootSettings.notifyReboot) {
-            notifyAdmins("System rebooting (scheduled restart).");
+            notifyAdmins("Sistema in riavvio (riavvio programmato).");
             delay(5000);  // Allow SMS to transmit before restarting
           }
           {
@@ -260,7 +260,7 @@ void SystemController::loopNormalMode() {
     m_alertSent = true;
     char alertMsg[64];
     snprintf(alertMsg, sizeof(alertMsg),
-             "ALERT: Garage door still open after %lu minutes",
+             "ALLARME: Porta garage ancora aperta da %lu minuti",
              (unsigned long)m_config.getSettings().doorAlertMin);
     notifyAdmins(alertMsg);
     m_display.showNotification("SMS sent:", "Door open alert");
@@ -270,11 +270,11 @@ void SystemController::loopNormalMode() {
   if (m_water.hasStateChanged()) {
     if (m_water.isWaterDetected()) {
       Serial.println(F("[SYS] Water detected — alerting all users"));
-      notifyAllUsers("ALERT: Water detected in garage!");
+      notifyAllUsers("ALLARME: Acqua rilevata in garage!");
       m_display.showNotification("SMS sent:", "Water ALERT!");
     } else {
       Serial.println(F("[SYS] Water cleared — notifying all users"));
-      notifyAllUsers("Water no longer detected.");
+      notifyAllUsers("Acqua non piu' rilevata.");
       m_display.showNotification("SMS sent:", "Water cleared");
     }
   }
@@ -355,7 +355,7 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
     Serial.print(F("[SYS] Unauthorized sender: "));
     Serial.println(sms.sender);
     if (m_config.getSettings().forwardUnknownSms) {
-      String fwd = "FWD from " + sms.sender + ":\n" + sms.message;
+      String fwd = "INOLTRO da " + sms.sender + ":\n" + sms.message;
       Serial.println(F("[SYS] Forwarding unknown SMS to admins"));
       notifyAdmins(fwd.c_str());
     }
@@ -373,7 +373,7 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
 
   if (!result.hasPermission) {
     Serial.println(F("[SYS] Permission denied for command"));
-    m_modem.sendSMS(sms.sender.c_str(), "Permission denied.");
+    m_modem.sendSMS(sms.sender.c_str(), "Permesso negato.");
     return;
   }
 
@@ -393,15 +393,25 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
     case SMSCommand::CLOSE:
       Serial.println(F("[SYS] Executing CLOSE command"));
       m_door.close();
-      m_modem.sendSMS(sms.sender.c_str(), "Closing garage door.");
+      m_modem.sendSMS(sms.sender.c_str(), "Chiusura porta garage in corso.");
       m_display.showNotification(notifyLine1, "CMD: CLOSE");
       break;
 
     case SMSCommand::OPEN:
       Serial.println(F("[SYS] Executing OPEN command"));
       m_door.open();
-      m_modem.sendSMS(sms.sender.c_str(), "Opening garage door.");
+      m_modem.sendSMS(sms.sender.c_str(), "Apertura porta garage in corso.");
       m_display.showNotification(notifyLine1, "CMD: OPEN");
+      break;
+
+    case SMSCommand::CREDIT:
+      // We send the credit SMS to the number, it responds with an SMS,
+      // since it's not in the "Authorized" numbers the response will be
+      // forwarded to the admins like all the other unknown sender sms.
+      Serial.println(F("[SYS] Executing CREDIT command — sending inquiry to 400"));
+      m_modem.sendSMS(CREDIT_CHECK_NUMBER, "credito");
+      m_modem.sendSMS(sms.sender.c_str(), "Richiesta credito inviata al 400.");
+      m_display.showNotification(notifyLine1, "CMD: CREDITO");
       break;
 
     case SMSCommand::UNKNOWN:
@@ -443,26 +453,26 @@ String SystemController::buildStatusReply() {
   if (m_door.isOpen()) {
     unsigned long openMs = m_door.getOpenDurationMs();
     unsigned long openMin = openMs / 60000;
-    reply = "Door: OPEN (" + String(openMin) + "min)";
+    reply = "Porta: APERTA (" + String(openMin) + "min)";
   } else {
-    reply = "Door: CLOSED";
+    reply = "Porta: CHIUSA";
   }
 
   // Environmental data
   if (m_env.isReady()) {
     reply += "\nTemp: " + String(m_env.getTemperature(), 1) + "C";
-    reply += " | Hum: " + String(m_env.getHumidity(), 1) + "%";
+    reply += "\nUmidità: " + String(m_env.getHumidity(), 1) + "%";
   }
 
   // Water state
-  reply += "\nWater: ";
-  reply += m_water.isWaterDetected() ? "ALERT" : "OK";
+  reply += "\nAcqua: ";
+  reply += m_water.isWaterDetected() ? "ALLARME" : "OK";
 
   // Signal quality
   int stars = m_modem.getSignalStars();
   char sig[5] = "----";
   for (int i = 0; i < stars && i < 4; i++) sig[i] = '*';
-  reply += " | Sig: ";
+  reply += "\nSegnale: ";
   reply += sig;
 
   // Uptime
@@ -470,9 +480,9 @@ String SystemController::buildStatusReply() {
   unsigned long days = totalMin / 1440;
   unsigned long hours = (totalMin % 1440) / 60;
   unsigned long mins = totalMin % 60;
-  reply += "\nUp: ";
+  reply += "\nAttivo da: ";
   if (days > 0) {
-    reply += String(days) + "d ";
+    reply += String(days) + "g ";
   }
   reply += String(hours) + "h " + String(mins) + "m";
 
