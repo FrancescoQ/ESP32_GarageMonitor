@@ -465,5 +465,16 @@ String SystemController::buildStatusReply() {
   reply += " | Sig: ";
   reply += sig;
 
+  // Uptime
+  unsigned long totalMin = millis() / 60000;
+  unsigned long days = totalMin / 1440;
+  unsigned long hours = (totalMin % 1440) / 60;
+  unsigned long mins = totalMin % 60;
+  reply += "\nUp: ";
+  if (days > 0) {
+    reply += String(days) + "d ";
+  }
+  reply += String(hours) + "h " + String(mins) + "m";
+
   return reply;
 }
