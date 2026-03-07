@@ -461,7 +461,7 @@ String SystemController::buildStatusReply() {
   // Environmental data
   if (m_env.isReady()) {
     reply += "\nTemp: " + String(m_env.getTemperature(), 1) + "C";
-    reply += "\nUmidità: " + String(m_env.getHumidity(), 1) + "%";
+    reply += "\nUmidita': " + String(m_env.getHumidity(), 1) + "%";
   }
 
   // Water state
