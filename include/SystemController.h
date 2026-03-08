@@ -69,6 +69,11 @@ private:
   bool m_alertSent;
   bool m_doorWasOpen;
 
+  // Environmental threshold alert state
+  bool m_tempLowAlertSent;
+  bool m_tempHighAlertSent;
+  bool m_humHighAlertSent;
+
   bool detectSetupMode();
   void beginNormalMode();
   void beginSetupMode();

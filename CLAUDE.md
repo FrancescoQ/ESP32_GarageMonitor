@@ -44,7 +44,7 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 
 ### Key Features
 - SMS-based door status monitoring and control
-- Temperature and humidity monitoring
+- Temperature and humidity monitoring with configurable threshold alerts
 - Flood detection with priority alerts
 - Granular SMS command authorization system (NVS-backed)
 - Bilingual SMS commands (EN/IT aliases) with Italian responses
@@ -85,7 +85,7 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 - [x] Temperature/humidity displayed on LCD environment page
 - [x] STATUS SMS includes temperature/humidity readings
 - ~~Periodic SMS reports~~ — intentionally skipped (no unsolicited SMS spam)
-- Temperature/humidity threshold alerts — intentionally deferred (not needed for current use case)
+- [x] Temperature/humidity threshold alerts with hysteresis (configurable via web UI, NVS-persisted, alerts sent to admins)
 
 ### ✅ Phase 3: Water Detection (Week 5) - COMPLETE
 - [x] WaterSensor class (XKC-Y25 + software debounce)
@@ -103,10 +103,10 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 - All SMS responses in Italian
 - Auto-reboot scheduling (configurable days interval + target hour, NVS-persisted)
 - Unknown SMS forwarding to all admin users
-- Boot SMS purge (deletes stale queued messages on startup for safety)
+- Smart boot SMS purge (discards only recognized commands from authorized users to prevent stale actions; non-command SMS follow normal flow, e.g. forwarded to admins)
 - FUNC button long-press reboot (5-second hold)
 - NVS-backed user management (add/remove/update users via web UI)
-- NVS-backed system settings (door alert delay, SMS poll interval, deep sleep flag, forwarding, reboot config)
+- NVS-backed system settings (door alert delay, SMS poll interval, deep sleep flag, forwarding, reboot config, env alert thresholds)
 - Web API endpoints: `/api/users`, `/api/settings`, `/api/diagnostics`, `/api/reboot`
 - Setup mode entry via FUNC button held at boot
 
@@ -120,7 +120,6 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 
 ### Planned Future Features
 - **System event log**: Ring buffer on LittleFS logging significant events (boot, door changes, water alerts, SMS sent/received, errors), viewable from web UI diagnostics page
-- **Temperature/humidity threshold alerts**: Configurable thresholds with SMS notifications (deferred from Phase 2)
 
 ---
 
@@ -289,7 +288,8 @@ monitor_filters = colorize, esp32_exception_decoder
 - ✓ Italian SMS aliases and responses
 - ✓ Auto-reboot scheduling
 - ✓ Unknown SMS forwarding to admins
-- ✓ Boot SMS purge for safety
+- ✓ Smart boot SMS purge (commands only)
+- ✓ Environmental threshold alerts (temp/humidity, configurable via web UI)
 
 ### Final System (Phase 5 + Installation)
 - ✓ All sensors integrated and working

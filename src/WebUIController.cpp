@@ -179,7 +179,7 @@ void WebUIController::handleDeleteUser() {
 void WebUIController::handleGetSettings() {
   const SystemSettings& s = m_config->getSettings();
 
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(384);
   doc["door_alert_min"] = s.doorAlertMin;
   doc["sms_poll_ms"] = s.smsPollMs;
   doc["deep_sleep"] = s.deepSleepEnabled;
@@ -188,6 +188,10 @@ void WebUIController::handleGetSettings() {
   doc["auto_reboot"] = s.autoRebootEnabled;
   doc["reboot_days"] = s.autoRebootDays;
   doc["reboot_hour"] = s.autoRebootHour;
+  doc["env_alert"] = s.envAlertEnabled;
+  doc["temp_min"] = s.tempMinThreshold;
+  doc["temp_max"] = s.tempMaxThreshold;
+  doc["hum_max"] = s.humMaxThreshold;
 
   String response;
   serializeJson(doc, response);
@@ -200,7 +204,7 @@ void WebUIController::handlePostSettings() {
     return;
   }
 
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(384);
   DeserializationError err = deserializeJson(doc, m_server->arg("plain"));
   if (err) {
     m_server->send(400, "application/json", "{\"ok\":false,\"error\":\"Invalid JSON\"}");
@@ -244,6 +248,33 @@ void WebUIController::handlePostSettings() {
     if (val >= -1 && val <= 23) {
       s.autoRebootHour = (int8_t)val;
     }
+  }
+  if (doc.containsKey("env_alert")) {
+    s.envAlertEnabled = doc["env_alert"];
+  }
+  if (doc.containsKey("temp_min")) {
+    float val = doc["temp_min"];
+    if (val >= -50.0f && val <= 80.0f) {
+      s.tempMinThreshold = val;
+    }
+  }
+  if (doc.containsKey("temp_max")) {
+    float val = doc["temp_max"];
+    if (val >= -50.0f && val <= 80.0f) {
+      s.tempMaxThreshold = val;
+    }
+  }
+  if (doc.containsKey("hum_max")) {
+    float val = doc["hum_max"];
+    if (val >= 0.0f && val <= 100.0f) {
+      s.humMaxThreshold = val;
+    }
+  }
+  // Validate: temp_min must be less than temp_max
+  if (s.tempMinThreshold >= s.tempMaxThreshold) {
+    m_server->send(400, "application/json",
+                  "{\"ok\":false,\"error\":\"temp_min must be less than temp_max\"}");
+    return;
   }
 
   m_config->setSettings(s);

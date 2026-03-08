@@ -21,7 +21,10 @@ SystemController::SystemController()
     m_setupMode(false),
     m_lastSMSCheck(0),
     m_alertSent(false),
-    m_doorWasOpen(false) {
+    m_doorWasOpen(false),
+    m_tempLowAlertSent(false),
+    m_tempHighAlertSent(false),
+    m_humHighAlertSent(false) {
 }
 
 void SystemController::begin() {
@@ -307,6 +310,61 @@ void SystemController::loopNormalMode() {
       Serial.println(F("[SYS] Water cleared — notifying all users"));
       notifyAllUsers("Acqua non piu' rilevata.");
       m_display.showNotification("SMS sent:", "Water cleared");
+    }
+  }
+
+  // Environmental threshold alerts (admins only)
+  if (m_env.isReady() && m_config.getSettings().envAlertEnabled) {
+    float temp = m_env.getTemperature();
+    float hum = m_env.getHumidity();
+    const SystemSettings& cfg = m_config.getSettings();
+
+    // Temperature low
+    if (temp < cfg.tempMinThreshold && !m_tempLowAlertSent) {
+      m_tempLowAlertSent = true;
+      char msg[80];
+      snprintf(msg, sizeof(msg),
+               "ALLARME: Temperatura bassa: %.1f C (soglia: %.1f C)",
+               temp, cfg.tempMinThreshold);
+      notifyAdmins(msg);
+      m_display.showNotification("SMS sent:", "Temp LOW alert");
+    } else if (temp >= cfg.tempMinThreshold + 1.0f && m_tempLowAlertSent) {
+      m_tempLowAlertSent = false;
+      char msg[80];
+      snprintf(msg, sizeof(msg), "Temperatura rientrata: %.1f C", temp);
+      notifyAdmins(msg);
+    }
+
+    // Temperature high
+    if (temp > cfg.tempMaxThreshold && !m_tempHighAlertSent) {
+      m_tempHighAlertSent = true;
+      char msg[80];
+      snprintf(msg, sizeof(msg),
+               "ALLARME: Temperatura alta: %.1f C (soglia: %.1f C)",
+               temp, cfg.tempMaxThreshold);
+      notifyAdmins(msg);
+      m_display.showNotification("SMS sent:", "Temp HIGH alert");
+    } else if (temp <= cfg.tempMaxThreshold - 1.0f && m_tempHighAlertSent) {
+      m_tempHighAlertSent = false;
+      char msg[80];
+      snprintf(msg, sizeof(msg), "Temperatura rientrata: %.1f C", temp);
+      notifyAdmins(msg);
+    }
+
+    // Humidity high
+    if (hum > cfg.humMaxThreshold && !m_humHighAlertSent) {
+      m_humHighAlertSent = true;
+      char msg[80];
+      snprintf(msg, sizeof(msg),
+               "ALLARME: Umidita' alta: %.1f%% (soglia: %.1f%%)",
+               hum, cfg.humMaxThreshold);
+      notifyAdmins(msg);
+      m_display.showNotification("SMS sent:", "Hum HIGH alert");
+    } else if (hum <= cfg.humMaxThreshold - 2.0f && m_humHighAlertSent) {
+      m_humHighAlertSent = false;
+      char msg[80];
+      snprintf(msg, sizeof(msg), "Umidita' rientrata: %.1f%%", hum);
+      notifyAdmins(msg);
     }
   }
 

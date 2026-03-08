@@ -92,6 +92,51 @@ export function Settings() {
         <Toggle checked={s.fwd_unknown} onChange={v => update('fwd_unknown', v)} />
       </FormRow>
 
+      <h3 class="text-sky-400 text-sm font-semibold mb-3 mt-2">Environment Alerts</h3>
+
+      <FormRow label="Env alerts" hint="SMS admins when temperature/humidity exceeds thresholds">
+        <Toggle checked={s.env_alert} onChange={v => update('env_alert', v)} />
+      </FormRow>
+
+      <FormRow label="Temp min" hint="Alert below this temperature (-50 to 80)">
+        <input
+          type="number"
+          min="-50"
+          max="80"
+          step="0.5"
+          value={s.temp_min}
+          onInput={e => update('temp_min', parseFloat(e.target.value))}
+          class="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm text-gray-200"
+        />
+        <span class="text-xs text-gray-400">&deg;C</span>
+      </FormRow>
+
+      <FormRow label="Temp max" hint="Alert above this temperature (-50 to 80)">
+        <input
+          type="number"
+          min="-50"
+          max="80"
+          step="0.5"
+          value={s.temp_max}
+          onInput={e => update('temp_max', parseFloat(e.target.value))}
+          class="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm text-gray-200"
+        />
+        <span class="text-xs text-gray-400">&deg;C</span>
+      </FormRow>
+
+      <FormRow label="Humidity max" hint="Alert above this humidity level (0-100)">
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="1"
+          value={s.hum_max}
+          onInput={e => update('hum_max', parseFloat(e.target.value))}
+          class="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm text-gray-200"
+        />
+        <span class="text-xs text-gray-400">%</span>
+      </FormRow>
+
       <h3 class="text-sky-400 text-sm font-semibold mb-3 mt-2">Auto Reboot</h3>
 
       <FormRow label="Auto reboot" hint="Periodically restart the system for reliability">

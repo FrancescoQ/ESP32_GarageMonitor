@@ -26,6 +26,10 @@ static const char* KEY_NOTIFY_REBOOT = "notify_reboot";
 static const char* KEY_AUTO_REBOOT = "auto_reboot";
 static const char* KEY_REBOOT_DAYS = "reboot_days";
 static const char* KEY_REBOOT_HOUR = "reboot_hour";
+static const char* KEY_ENV_ALERT = "env_alert";
+static const char* KEY_TEMP_MIN = "temp_min";
+static const char* KEY_TEMP_MAX = "temp_max";
+static const char* KEY_HUM_MAX = "hum_max";
 
 ConfigManager::ConfigManager()
   : m_userCount(0),
@@ -38,6 +42,10 @@ ConfigManager::ConfigManager()
   m_settings.autoRebootEnabled = DEFAULT_AUTO_REBOOT_ENABLED;
   m_settings.autoRebootDays = DEFAULT_AUTO_REBOOT_DAYS;
   m_settings.autoRebootHour = DEFAULT_AUTO_REBOOT_HOUR;
+  m_settings.envAlertEnabled = DEFAULT_ENV_ALERT_ENABLED;
+  m_settings.tempMinThreshold = DEFAULT_TEMP_MIN_THRESHOLD;
+  m_settings.tempMaxThreshold = DEFAULT_TEMP_MAX_THRESHOLD;
+  m_settings.humMaxThreshold = DEFAULT_HUM_MAX_THRESHOLD;
 }
 
 void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
@@ -77,7 +85,15 @@ void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
   Serial.print(F(", reboot_days="));
   Serial.print(m_settings.autoRebootDays);
   Serial.print(F(", reboot_hour="));
-  Serial.println(m_settings.autoRebootHour);
+  Serial.print(m_settings.autoRebootHour);
+  Serial.print(F(", env_alert="));
+  Serial.print(m_settings.envAlertEnabled ? "ON" : "OFF");
+  Serial.print(F(", temp_min="));
+  Serial.print(m_settings.tempMinThreshold);
+  Serial.print(F(", temp_max="));
+  Serial.print(m_settings.tempMaxThreshold);
+  Serial.print(F(", hum_max="));
+  Serial.println(m_settings.humMaxThreshold);
 }
 
 // =============================================================================
@@ -198,7 +214,15 @@ void ConfigManager::setSettings(const SystemSettings& settings) {
   Serial.print(F(", reboot_days="));
   Serial.print(m_settings.autoRebootDays);
   Serial.print(F(", reboot_hour="));
-  Serial.println(m_settings.autoRebootHour);
+  Serial.print(m_settings.autoRebootHour);
+  Serial.print(F(", env_alert="));
+  Serial.print(m_settings.envAlertEnabled ? "ON" : "OFF");
+  Serial.print(F(", temp_min="));
+  Serial.print(m_settings.tempMinThreshold);
+  Serial.print(F(", temp_max="));
+  Serial.print(m_settings.tempMaxThreshold);
+  Serial.print(F(", hum_max="));
+  Serial.println(m_settings.humMaxThreshold);
 }
 
 // =============================================================================
@@ -215,7 +239,7 @@ void ConfigManager::loadUsers() {
   }
 
   for (int i = 0; i < m_userCount; i++) {
-    char phoneKey[16], permsKey[16], nameKey[16];
+    char phoneKey[20], permsKey[20], nameKey[20];
     snprintf(phoneKey, sizeof(phoneKey), "phone_%d", i);
     snprintf(permsKey, sizeof(permsKey), "perms_%d", i);
     snprintf(nameKey, sizeof(nameKey), "name_%d", i);
@@ -235,7 +259,7 @@ void ConfigManager::saveUsers() {
   prefs.putUChar("count", m_userCount);
 
   for (int i = 0; i < m_userCount; i++) {
-    char phoneKey[16], permsKey[16], nameKey[16];
+    char phoneKey[20], permsKey[20], nameKey[20];
     snprintf(phoneKey, sizeof(phoneKey), "phone_%d", i);
     snprintf(permsKey, sizeof(permsKey), "perms_%d", i);
     snprintf(nameKey, sizeof(nameKey), "name_%d", i);
@@ -247,7 +271,7 @@ void ConfigManager::saveUsers() {
 
   // Clean up any stale entries beyond current count
   for (int i = m_userCount; i < MAX_NVS_USERS; i++) {
-    char phoneKey[16], permsKey[16], nameKey[16];
+    char phoneKey[20], permsKey[20], nameKey[20];
     snprintf(phoneKey, sizeof(phoneKey), "phone_%d", i);
     snprintf(permsKey, sizeof(permsKey), "perms_%d", i);
     snprintf(nameKey, sizeof(nameKey), "name_%d", i);
@@ -272,6 +296,10 @@ void ConfigManager::loadSettings() {
   m_settings.autoRebootEnabled = prefs.getBool(KEY_AUTO_REBOOT, DEFAULT_AUTO_REBOOT_ENABLED);
   m_settings.autoRebootDays = prefs.getUInt(KEY_REBOOT_DAYS, DEFAULT_AUTO_REBOOT_DAYS);
   m_settings.autoRebootHour = prefs.getChar(KEY_REBOOT_HOUR, DEFAULT_AUTO_REBOOT_HOUR);
+  m_settings.envAlertEnabled = prefs.getBool(KEY_ENV_ALERT, DEFAULT_ENV_ALERT_ENABLED);
+  m_settings.tempMinThreshold = prefs.getFloat(KEY_TEMP_MIN, DEFAULT_TEMP_MIN_THRESHOLD);
+  m_settings.tempMaxThreshold = prefs.getFloat(KEY_TEMP_MAX, DEFAULT_TEMP_MAX_THRESHOLD);
+  m_settings.humMaxThreshold = prefs.getFloat(KEY_HUM_MAX, DEFAULT_HUM_MAX_THRESHOLD);
 
   prefs.end();
 }
@@ -288,6 +316,10 @@ void ConfigManager::saveSettings() {
   prefs.putBool(KEY_AUTO_REBOOT, m_settings.autoRebootEnabled);
   prefs.putUInt(KEY_REBOOT_DAYS, m_settings.autoRebootDays);
   prefs.putChar(KEY_REBOOT_HOUR, m_settings.autoRebootHour);
+  prefs.putBool(KEY_ENV_ALERT, m_settings.envAlertEnabled);
+  prefs.putFloat(KEY_TEMP_MIN, m_settings.tempMinThreshold);
+  prefs.putFloat(KEY_TEMP_MAX, m_settings.tempMaxThreshold);
+  prefs.putFloat(KEY_HUM_MAX, m_settings.humMaxThreshold);
 
   prefs.end();
 }

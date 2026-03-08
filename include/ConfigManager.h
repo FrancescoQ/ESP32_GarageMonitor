@@ -41,6 +41,10 @@ struct SystemSettings {
   bool autoRebootEnabled;   // Auto-reboot on/off
   uint32_t autoRebootDays;  // Days between auto-reboots (1-30)
   int8_t autoRebootHour;    // Hour to reboot (0-23), or -1 for any time
+  bool envAlertEnabled;     // Enable temperature/humidity threshold alerts
+  float tempMinThreshold;   // Minimum temperature (°C) — alert below this
+  float tempMaxThreshold;   // Maximum temperature (°C) — alert above this
+  float humMaxThreshold;    // Maximum humidity (%) — alert above this
 };
 
 // Default settings values
@@ -52,6 +56,10 @@ const bool DEFAULT_NOTIFY_REBOOT = true;
 const bool DEFAULT_AUTO_REBOOT_ENABLED = true;
 const uint32_t DEFAULT_AUTO_REBOOT_DAYS = 7;
 const int8_t DEFAULT_AUTO_REBOOT_HOUR = 2;
+const bool DEFAULT_ENV_ALERT_ENABLED = false;
+const float DEFAULT_TEMP_MIN_THRESHOLD = 0.0f;
+const float DEFAULT_TEMP_MAX_THRESHOLD = 40.0f;
+const float DEFAULT_HUM_MAX_THRESHOLD = 85.0f;
 
 /**
  * @brief NVS-backed configuration manager

@@ -165,7 +165,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - [x] Accurate temperature readings
 - [x] Accurate humidity readings
 - ~~Periodic SMS reports~~ — intentionally skipped (no unsolicited SMS spam)
-- ~~Alerts trigger on threshold breach~~ — intentionally deferred
+- [x] Alerts trigger on threshold breach (configurable via web UI, NVS-persisted, with hysteresis to prevent alert spam)
 - [x] Display shows all environmental data
 
 **Hardware Addition:**
@@ -228,7 +228,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 1. **ConfigManager Class** (NVS persistence)
    - User storage: phone, permissions bitmask, name (seeded from Secrets.h on first boot)
-   - System settings: door alert delay, SMS poll interval, deep sleep flag, unknown SMS forwarding, auto-reboot config
+   - System settings: door alert delay, SMS poll interval, deep sleep flag, unknown SMS forwarding, auto-reboot config, env alert thresholds
    - `begin()` loads NVS, seeds defaults if empty
    - CRUD operations: `addUser()`, `removeUser()`, `updateUserPermissions()`, `findUserByPhone()`
    - `getSettings()` / `setSettings()` for system configuration
@@ -263,9 +263,21 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
    - Optional admin notification before reboot
    - NVS flag tracks reboot state for post-reboot notification
 
-6. **Additional Features**
+6. **Environmental Threshold Alerts**
+   - Configurable via NVS/web UI: enable/disable, temp min/max, humidity max
+   - Hysteresis to prevent alert spam (temp ±1°C, humidity -2%)
+   - SMS alerts sent to all admins on threshold breach
+   - Auto-clear alert with "rientrata" (back to normal) notification
+
+7. **Smart Boot SMS Purge**
+   - On startup, reads all queued SMS and classifies them:
+     - Recognized commands from authorized users → discarded (prevents stale actions)
+     - Everything else (unknown senders, non-commands) → processed normally (forwarded to admins)
+   - Admins notified only if commands were actually purged
+   - FUNC button 5-second long-press reboot (works in any mode)
+
+8. **Additional Features**
    - Unknown SMS forwarding to admins (configurable on/off)
-   - Boot SMS purge: deletes all queued SMS on startup, notifies admins
    - FUNC button 5-second long-press reboot (works in any mode)
 
 **Testing Scenarios:**
@@ -280,7 +292,6 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 **Planned but not yet implemented:**
 - **System event log**: Ring buffer on LittleFS logging all significant events (boot, door changes, water alerts, SMS sent/received, errors), viewable from web UI diagnostics page
-- **Temperature/humidity threshold alerts**: Configurable thresholds with SMS notifications (deferred from Phase 2, not needed for current use case)
 
 ---
 
@@ -663,7 +674,8 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 - ✓ Italian SMS aliases and responses
 - ✓ Auto-reboot scheduling
 - ✓ Unknown SMS forwarding to admins
-- ✓ Boot SMS purge for safety
+- ✓ Smart boot SMS purge (commands only)
+- ✓ Environmental threshold alerts (temp/humidity, configurable via web UI)
 
 **Phase 5 Complete:**
 - Deep sleep reduces power consumption >80%
