@@ -1,8 +1,8 @@
 # Garage Monitoring System - Claude Code Context
 
-> **Project Status**: Phase 1 Complete — Phases 2-3 sensors integrated
+> **Project Status**: Phases 0-4 Complete — Phase 5 (Power Management) remaining
 > **Location**: Venice (Marghera), Italy
-> **Last Updated**: March 4, 2026
+> **Last Updated**: March 8, 2026
 
 ---
 
@@ -46,7 +46,12 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 - SMS-based door status monitoring and control
 - Temperature and humidity monitoring
 - Flood detection with priority alerts
-- Granular SMS command authorization system
+- Granular SMS command authorization system (NVS-backed)
+- Bilingual SMS commands (EN/IT aliases) with Italian responses
+- Web-based configuration via WiFi AP setup mode
+- Credit monitoring (Iliad 400 service)
+- Auto-reboot scheduling (configurable interval + hour)
+- Unknown SMS forwarding to admins
 - Low-power operation with deep sleep (Phase 5)
 - Modular OOP architecture
 
@@ -75,12 +80,12 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 - Full SMS command loop: receive → parse → authorize → execute → respond → delete
 - Security: ADMIN/CONTROL/MONITOR permission levels, phone number normalization
 
-### ✅ Phase 2: Environmental Monitoring (Week 4) - PARTIAL
+### ✅ Phase 2: Environmental Monitoring (Week 4) - COMPLETE
 - [x] EnvironmentalSensor class (BME280 driver via I2C)
 - [x] Temperature/humidity displayed on LCD environment page
 - [x] STATUS SMS includes temperature/humidity readings
-- [ ] ~~Periodic SMS reports~~ — intentionally skipped (no unsolicited SMS spam)
-- [ ] Temperature/humidity threshold alerts (future)
+- ~~Periodic SMS reports~~ — intentionally skipped (no unsolicited SMS spam)
+- Temperature/humidity threshold alerts — intentionally deferred (not needed for current use case)
 
 ### ✅ Phase 3: Water Detection (Week 5) - COMPLETE
 - [x] WaterSensor class (XKC-Y25 + software debounce)
@@ -88,19 +93,30 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 - [x] Water status displayed on LCD environment page
 - [x] Inverted container design for sensor protection
 
-### 🔲 Phase 4: Configuration & Web UI (Week 6)
-- Credit monitoring (Iliad 400 service)
-- WiFi setup mode (web UI for configuration)
-- Diagnostics and logging
-- NVS storage for authorized users
-- Multilingual SMS support (IT/EN command aliases + localized responses)
+### ✅ Phase 4: Configuration & Web UI (Week 6) - COMPLETE
+**Delivered**:
+- ConfigManager class (NVS persistence for users + system settings)
+- WebUIController class (WiFi AP "GarageSetup" + HTTP server on port 80)
+- Web UI frontend (Preact + Tailwind CSS, served from LittleFS)
+- Credit monitoring (CREDIT/CREDITO command → sends inquiry to Iliad 400)
+- Italian SMS command aliases (STATO, CHIUDI, APRI, CREDITO)
+- All SMS responses in Italian
+- Auto-reboot scheduling (configurable days interval + target hour, NVS-persisted)
+- Unknown SMS forwarding to all admin users
+- Boot SMS purge (deletes stale queued messages on startup for safety)
+- FUNC button long-press reboot (5-second hold)
+- NVS-backed user management (add/remove/update users via web UI)
+- NVS-backed system settings (door alert delay, SMS poll interval, deep sleep flag, forwarding, reboot config)
+- Web API endpoints: `/api/users`, `/api/settings`, `/api/diagnostics`, `/api/reboot`
+- Setup mode entry via FUNC button held at boot
 
 ### 🔲 Phase 5: Power Management (Week 7+)
 - PowerManager class
-- Deep sleep implementation (runtime-configurable via NVS from Phase 4 — can be disabled from web UI or SMS if issues arise in the field)
+- Deep sleep implementation (NVS `deepSleepEnabled` flag already exists from Phase 4, togglable via web UI)
 - Wake-up triggers (SMS via RI pin, door change, water detection, periodic)
 - SMS polling → URC notification migration (AT+CNMI)
 - Power consumption optimization
+- DTR pin (GPIO 18) already initialized in Config.h for sleep control
 
 ---
 
@@ -121,7 +137,8 @@ SystemController (main coordinator)
 ├── MessageParser (command parsing + authorization)
 ├── DisplayController (LCD 16x2, 3 pages, notifications)
 ├── ButtonController (CLOSE/OPEN/STOP/FUNC buttons)
-├── ConfigManager (Phase 4)
+├── ConfigManager (NVS: users + settings persistence)
+├── WebUIController (WiFi AP + HTTP server + LittleFS)
 └── PowerManager (Phase 5)
 ```
 
@@ -151,9 +168,10 @@ enum Permission {
 ### Authorization Flow
 1. Parse sender phone number from incoming SMS
 2. Normalize number format (+39xxxxxxxxxx)
-3. Lookup in authorized users list
+3. Lookup in NVS-backed user database via ConfigManager (seeded from Secrets.h defaults on first boot)
 4. Check command against user's permissions
-5. Execute if authorized, reject if not
+5. Execute if authorized; reply "Permesso negato." if insufficient permission
+6. Unknown senders: optionally forward message to all admins (configurable)
 
 **Security Benefits**:
 - SMS spoofing difficult (cellular network authentication)
@@ -234,7 +252,7 @@ monitor_filters = colorize, esp32_exception_decoder
 - `TinyGSM ^0.11.7` - SIM7000G communication
 - `Adafruit BME280 ^2.2.2` - Temperature/humidity sensor
 - `LiquidCrystal_I2C ^1.1.4` - LCD display
-- `ArduinoJson ^6.21.3` - JSON parsing (future use)
+- `ArduinoJson ^6.21.3` - JSON API for web UI
 
 ---
 
@@ -280,14 +298,16 @@ monitor_filters = colorize, esp32_exception_decoder
 
 ## Notes for Claude Code
 
-- **Phase 1 is complete** — all core functionality (door, SMS, auth, display, buttons) is working
-- **Next focus: Phase 4** (web UI, NVS configuration, credit monitoring)
-- Phase 2 environmental monitoring is partial (BME280 works, threshold alerts still TODO)
-- Security (SMS sender verification) is implemented and working
+- **Phases 0-4 are complete** — all core functionality plus configuration and web UI are working
+- **Next focus: Phase 5** (PowerManager, deep sleep, URC notifications)
+- All SMS responses are in Italian (e.g., "Chiusura porta garage in corso.", "Permesso negato.")
+- Commands accept both EN and IT: STATUS/STATO, CLOSE/CHIUDI, OPEN/APRI, CREDIT/CREDITO
+- User database is NVS-backed via ConfigManager (seeded from Secrets.h on first boot, editable via web UI)
+- Web UI: WiFi AP "GarageSetup" activated by holding FUNC at boot; Preact + Tailwind frontend in `data/` served via LittleFS
 - Keep main.cpp minimal - all logic in SystemController and subsystems
 - Use Serial.println() liberally for debugging
 - Relay safety: see @docs/safety.md — relays must NEVER activate without explicit user action
-- SMS functions live in ModemHandler (pragmatic choice; may extract to SMSHandler later)
+- SMS functions live in ModemHandler (pragmatic choice, decided to keep as-is)
 
 ---
 

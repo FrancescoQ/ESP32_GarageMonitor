@@ -304,55 +304,41 @@ processing, environmental monitoring, and flood detection.
 
 ## Future Improvements
 
-### SMS Reception: Polling → URC Notifications (Phase 4)
+### SMS Reception: Polling → URC Notifications (Phase 5)
 
-Current approach polls with `AT+CMGL="REC UNREAD"` every 5 seconds. This works but is wasteful — the modem and UART are busy even when no SMS has arrived, which conflicts with Phase 4 deep sleep goals.
+Current approach polls with `AT+CMGL="REC UNREAD"` every 5 seconds (interval configurable via NVS `sms_poll_ms`). This works but is wasteful — the modem and UART are busy even when no SMS has arrived, which conflicts with Phase 5 deep sleep goals.
 
-**Better approaches to evaluate in Phase 4:**
+**Better approaches to evaluate in Phase 5:**
 1. **URC-based notification** (`AT+CNMI=2,1`): SIM7000G sends an unsolicited `+CMTI` notification the instant an SMS arrives. No polling needed — just listen for the URC on the serial line. Much more efficient for power management.
 2. **RI pin hardware interrupt**: SIM7000G can pulse the RI (Ring Indicator) pin on SMS arrival. Wire this to an ESP32 GPIO configured as a wake-up source — the ESP32 can stay in deep sleep and wake only when an SMS actually arrives. Needs a GPIO assignment added to `Config.h`.
 
-**Action items for Phase 4:**
+**Action items for Phase 5:**
 - [ ] Test `AT+CNMI=2,1` URC notification and parse `+CMTI: "SM",<index>` response
 - [ ] Assign RI pin GPIO in `Config.h` and test hardware interrupt wake from deep sleep
 - [ ] Evaluate whether polling can be eliminated entirely or kept as fallback
 
-### Multilingual SMS Support (Command Aliases + Localized Responses)
+### ✅ Multilingual SMS Support — DONE (Phase 4)
 
-Two features to support Italian-speaking users (e.g., family members):
+Implemented in Phase 4:
 
-**Command aliases** — allow commands in multiple languages. Minimal change
-in `MessageParser::parseCommand()`:
+**Command aliases** — Italian aliases added in `MessageParser::parseCommand()`:
 ```cpp
-if (trimmed == "OPEN" || trimmed == "APRI") return SMSCommand::OPEN;
-if (trimmed == "CLOSE" || trimmed == "CHIUDI") return SMSCommand::CLOSE;
 if (trimmed == "STATUS" || trimmed == "STATO") return SMSCommand::STATUS;
+if (trimmed == "CLOSE" || trimmed == "CHIUDI") return SMSCommand::CLOSE;
+if (trimmed == "OPEN" || trimmed == "APRI") return SMSCommand::OPEN;
+if (trimmed == "CREDIT" || trimmed == "CREDITO") return SMSCommand::CREDIT;
 ```
 
-**Localized response phrases** — send SMS replies in the user's preferred
-language. Two possible approaches:
-1. **Simple `Phrases.h`** — string constants per language, a `language` field
-   on `AuthorizedUser`, pick the right string when sending replies.
-2. **`getPhrase(PhraseID, Language)` function** — centralizes all translations
-   in one place, easier to maintain as phrases grow.
+**Response language** — all SMS responses are in Italian (hardcoded, not per-user). Examples:
+- "Chiusura porta garage in corso."
+- "Apertura porta garage in corso."
+- "Permesso negato."
+- "Richiesta credito inviata al 400."
 
-Both allow per-user language preference (Francesco → EN, Papà → IT).
+Per-user language preference was not implemented — Italian-only is sufficient for the target users.
 
-### Architecture: SMS Functions in ModemHandler (Post-Phase 1 Review)
+### Architecture: SMS Functions in ModemHandler — Kept As-Is
 
-SMS send/receive/delete are currently in `ModemHandler` for pragmatic reasons — it already owns the serial connection and AT command infrastructure. This works well for Phase 1 but doesn't match the planned architecture:
+SMS send/receive/delete remain in `ModemHandler`. This was a deliberate decision: extracting to a separate `SMSHandler` class would add complexity without meaningful benefit, since `ModemHandler` already owns the serial connection and AT command infrastructure. The class size remains manageable.
 
-```
-CommunicationManager
-├── SMSHandler        ← SMS send/receive/delete/storage management
-├── ATCommandInterface
-└── MessageParser
-```
-
-**Current state**: `ModemHandler` handles modem lifecycle (power, init, network) AND SMS operations. As more SMS features are added (multi-part messages, delivery reports, storage management), this class will grow too large.
-
-**Review after Phase 1 completion:**
-- [ ] Evaluate whether to extract SMS operations into a dedicated `SMSHandler` class
-- [ ] `SMSHandler` would take a reference to `ModemHandler` (or its serial stream) for AT command access
-- [ ] `ModemHandler` should ideally be modem lifecycle only: power on/off, SIM unlock, network registration, signal monitoring, raw AT command passthrough
-- [ ] Consider whether `CommunicationManager` wrapper is needed or if `SystemController` can coordinate `ModemHandler` + `SMSHandler` directly
+The planned `CommunicationManager` wrapper was also skipped — `SystemController` coordinates `ModemHandler` + `MessageParser` directly, which is simpler and works well.

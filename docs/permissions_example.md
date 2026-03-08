@@ -2,21 +2,24 @@
 
 ## Quick Reference
 
-| Role | STATUS | CLOSE | OPEN | CONFIG |
-|------|--------|-------|------|--------|
+| Role | STATUS | CLOSE | OPEN | CONFIG/CREDIT |
+|------|--------|-------|------|---------------|
 | **ADMIN** | ✅ | ✅ | ✅ | ✅ |
+| **CONTROL_FULL** | ✅ | ✅ | ✅ | ❌ |
 | **CONTROL** | ✅ | ✅ | ❌ | ❌ |
 | **MONITOR** | ✅ | ❌ | ❌ | ❌ |
 
-## Phase 1 Setup (Hardcoded)
+**Note**: CONTROL_FULL is a custom permission combination (STATUS + CLOSE + OPEN). Permission presets are just convenience — any combination of permission bits can be assigned to a user via the web UI.
 
-### Step 1: Define Authorized Users
+## Default Configuration (Secrets.h)
 
-In `src/communication/MessageParser.cpp` or a dedicated config file:
+### Step 1: Define Default Users
+
+Default users are defined in `include/Secrets.h` and seeded into NVS on first boot. After that, users are managed via the web UI.
 
 ```cpp
-// At the top of the file, after includes
-const AuthorizedUser AUTHORIZED_USERS[] = {
+// In Secrets.h (not committed to git)
+const AuthorizedUser DEFAULT_USERS[] = {
     // Your number - full admin access
     {"+39xxxxxxxxxx", PERM_ADMIN, "Francesco"},
 
@@ -31,60 +34,53 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 };
 ```
 
+After first boot, these users are stored in NVS. To change users without reflashing, use the web UI (hold FUNC at boot → connect to "GarageSetup" WiFi AP → open web UI).
+
 ### Step 2: Permission Checking Logic
 
-In `SystemController::processCommandState()` or SMS handler:
+In `SystemController::handleSMS()`:
 
 ```cpp
-void processSMSCommand(const String& sender, SMSCommand cmd) {
-    MessageParser parser;
+void SystemController::handleSMS(const ReceivedSMS& sms) {
+    // Lookup user in NVS via ConfigManager
+    const NvsUser* user = m_config.findUserByPhone(
+        MessageParser::normalizeNumber(sms.sender));
 
-    // Check if sender is authorized at all
-    if (!parser.isFromAuthorizedNumber(sender)) {
-        // Unknown sender - silently ignore
+    if (!user) {
+        // Unknown sender - optionally forward to admins
+        if (m_config.getSettings().forwardUnknownSms) {
+            notifyAdmins("INOLTRO da " + sms.sender + ":\n" + sms.message);
+        }
         return;
     }
 
-    // Process command based on permissions
+    SMSCommand cmd = m_parser.parseCommand(sms.message);
+
+    // Check permission for the command
+    if (!m_parser.hasPermission(user->permissions, cmd)) {
+        m_modem.sendSMS(sms.sender, "Permesso negato.");
+        return;
+    }
+
+    // Execute authorized command
     switch (cmd) {
-        case SMSCommand::STATUS_REQUEST:
-            if (parser.hasPermission(sender, PERM_STATUS)) {
-                sendStatusSMS(sender);
-            } else {
-                sendSMS(sender, "Permission denied");
-            }
+        case SMSCommand::STATUS:
+            m_modem.sendSMS(sms.sender, buildStatusReply());
             break;
-
-        case SMSCommand::CLOSE_DOOR:
-            if (parser.hasPermission(sender, PERM_CLOSE)) {
-                triggerDoorClose();
-                sendSMS(sender, "Door close command sent");
-            } else {
-                sendSMS(sender, "Permission denied: CLOSE requires CONTROL or ADMIN");
-            }
+        case SMSCommand::CLOSE:
+            m_door.close();
+            m_modem.sendSMS(sms.sender, "Chiusura porta garage in corso.");
             break;
-
-        case SMSCommand::OPEN_DOOR:
-            if (parser.hasPermission(sender, PERM_OPEN)) {
-                triggerDoorOpen();
-                sendSMS(sender, "Door open command sent");
-            } else {
-                sendSMS(sender, "Permission denied: OPEN requires ADMIN");
-            }
+        case SMSCommand::OPEN:
+            m_door.open();
+            m_modem.sendSMS(sms.sender, "Apertura porta garage in corso.");
             break;
-
-        case SMSCommand::CONFIG_UPDATE:
-            if (parser.hasPermission(sender, PERM_CONFIG)) {
-                updateConfig(parser.getParameter("key"));
-                sendSMS(sender, "Configuration updated");
-            } else {
-                sendSMS(sender, "Permission denied: CONFIG requires ADMIN");
-            }
+        case SMSCommand::CREDIT:
+            m_modem.sendSMS("400", "credito");
+            m_modem.sendSMS(sms.sender, "Richiesta credito inviata al 400.");
             break;
-
         default:
-            sendSMS(sender, "Unknown command");
-            break;
+            break;  // Unknown commands silently ignored
     }
 }
 ```
@@ -100,32 +96,42 @@ STATUS
 
 **System Response:**
 ```
-Garage OPEN
-Temp: 18.5C, Humidity: 65%
-Signal: -67dBm (Good)
-Last update: 2 mins ago
+Porta: APERTA (5min)
+Temp: 21.5C
+Umidita': 65.3%
+Acqua: OK
+Segnale: **
+Attivo da: 2g 3h 45m
 ```
 
 **SMS from +39xxxxxxxxxx:**
 ```
-CLOSE
+CHIUDI
 ```
 
 **System Response:**
 ```
-Door close command sent
-Garage is now CLOSED
+Chiusura porta garage in corso.
 ```
 
 **SMS from +39xxxxxxxxxx:**
 ```
-OPEN
+APRI
 ```
 
 **System Response:**
 ```
-Door open command sent
-Garage is now OPEN
+Apertura porta garage in corso.
+```
+
+**SMS from +39xxxxxxxxxx:**
+```
+CREDITO
+```
+
+**System Response:**
+```
+Richiesta credito inviata al 400.
 ```
 
 ---
@@ -134,36 +140,37 @@ Garage is now OPEN
 
 **SMS from +39yyyyyyyyyy (Mom):**
 ```
-STATUS
+STATO
 ```
 
 **System Response:**
 ```
-Garage OPEN
-Temp: 18.5C, Humidity: 65%
-Signal: -67dBm (Good)
-Last update: 2 mins ago
+Porta: APERTA (5min)
+Temp: 21.5C
+Umidita': 65.3%
+Acqua: OK
+Segnale: **
+Attivo da: 2g 3h 45m
 ```
 
 **SMS from +39yyyyyyyyyy (Mom):**
 ```
-CLOSE
+CHIUDI
 ```
 
 **System Response:**
 ```
-Door close command sent
-Garage is now CLOSED
+Chiusura porta garage in corso.
 ```
 
 **SMS from +39yyyyyyyyyy (Mom):**
 ```
-OPEN
+APRI
 ```
 
 **System Response:**
 ```
-Permission denied: OPEN requires ADMIN
+Permesso negato.
 ```
 
 ✅ **Why this makes sense**: Mom can check on the garage and close it if needed, but can't remotely open it (security).
@@ -174,35 +181,37 @@ Permission denied: OPEN requires ADMIN
 
 **SMS from +39zzzzzzzzzz (Neighbor Mario):**
 ```
-STATUS
+STATO
 ```
 
 **System Response:**
 ```
-Garage OPEN
-Temp: 18.5C, Humidity: 65%
-Signal: -67dBm (Good)
-Last update: 2 mins ago
+Porta: CHIUSA
+Temp: 18.5C
+Umidita': 72.1%
+Acqua: OK
+Segnale: ***
+Attivo da: 5g 12h 30m
 ```
 
 **SMS from +39zzzzzzzzzz (Neighbor Mario):**
 ```
-CLOSE
+CHIUDI
 ```
 
 **System Response:**
 ```
-Permission denied: CLOSE requires CONTROL or ADMIN
+Permesso negato.
 ```
 
 **SMS from +39zzzzzzzzzz (Neighbor Mario):**
 ```
-OPEN
+APRI
 ```
 
 **System Response:**
 ```
-Permission denied: OPEN requires ADMIN
+Permesso negato.
 ```
 
 ✅ **Why this makes sense**: Neighbor can check if your garage is secure while you're away on vacation, but can't control it.
@@ -213,35 +222,21 @@ Permission denied: OPEN requires ADMIN
 
 **SMS from +39000000000 (Unknown):**
 ```
-STATUS
+APRI
 ```
 
 **System Response:**
 ```
-(silent - no response)
+(no direct response — message forwarded to admins if forwarding enabled)
 ```
 
-**SMS from +39000000000 (Unknown):**
+Admin receives:
 ```
-CLOSE
-```
-
-**System Response:**
-```
-(silent - no response)
+INOLTRO da +39000000000:
+APRI
 ```
 
-**SMS from +39000000000 (Unknown):**
-```
-OPEN
-```
-
-**System Response:**
-```
-(silent - no response)
-```
-
-✅ **Why this makes sense**: Unknown senders get no response at all (don't leak information about valid commands).
+✅ **Why this makes sense**: Unknown senders get no response (don't leak information about valid commands), but admins are notified for awareness.
 
 ---
 
@@ -319,23 +314,33 @@ const uint8_t PERM_ADMIN = PERM_STATUS | PERM_CLOSE | PERM_OPEN | PERM_CONFIG | 
 ### Step 3: Add Command Handler
 
 ```cpp
-case SMSCommand::REBOOT_SYSTEM:
-    if (parser.hasPermission(sender, PERM_REBOOT)) {
-        sendSMS(sender, "Rebooting system...");
+case SMSCommand::REBOOT:
+    if (m_parser.hasPermission(user->permissions, SMSCommand::REBOOT)) {
+        m_modem.sendSMS(sms.sender, "Sistema in riavvio.");
         ESP.restart();
-    } else {
-        sendSMS(sender, "Permission denied: REBOOT requires ADMIN");
     }
+    // Permission denied handled earlier in the flow
     break;
 ```
 
-## Changing Permissions Later
+## Changing Permissions
 
-### Phase 1 (Hardcoded)
-Edit the code and re-upload firmware:
+### Option 1: Web UI (Recommended)
+Hold FUNC button at boot to enter setup mode. Connect to "GarageSetup" WiFi AP and open `http://192.168.4.1`:
+
+The web UI allows:
+- View all users with their phone numbers and permission levels
+- Edit permissions for any user
+- Add new users
+- Remove users
+
+Changes are persisted to NVS immediately and survive reboots.
+
+### Option 2: Change Defaults (Secrets.h)
+To change the default users that are seeded on first boot (or after NVS erase), edit `include/Secrets.h`:
 
 ```cpp
-const AuthorizedUser AUTHORIZED_USERS[] = {
+const AuthorizedUser DEFAULT_USERS[] = {
     {"+39xxxxxxxxxx", PERM_ADMIN,   "Francesco"},
     {"+39yyyyyyyyyy", PERM_ADMIN,   "Mom"},  // Changed from PERM_CONTROL
     {"+39zzzzzzzzzz", PERM_MONITOR, "Neighbor"},
@@ -343,21 +348,7 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 };
 ```
 
-### Phase 5 (Dynamic)
-Use WiFi setup mode web interface:
-
-```
-http://192.168.4.1/users
-
-Users:
-[X] Francesco (+39xxxxxxxxxx) - ADMIN
-[X] Mom (+39yyyyyyyyyy) - CONTROL [Edit] [Delete]
-[X] Neighbor (+39zzzzzzzzzz) - MONITOR [Edit] [Delete]
-
-[Add New User]
-```
-
-Click "Edit" next to Mom, change permissions, save to NVS.
+**Note**: Changing Secrets.h only affects the initial NVS seed. If NVS already has users, the defaults are not re-applied. To force re-seed, erase NVS first.
 
 ## Logging (Optional)
 
@@ -383,12 +374,12 @@ void logCommand(const String& sender, SMSCommand cmd, bool authorized) {
 }
 ```
 
-**Example Output:**
+**Example Serial Output:**
 ```
-Francesco (+39xxxxxxxxxx) ✅ executed: CLOSE
-Mom (+39yyyyyyyyyy) ✅ executed: STATUS
-Mom (+39yyyyyyyyyy) ❌ denied: OPEN
-Unknown (+39000000000) ❌ rejected: CLOSE (unauthorized)
+[SMS] Francesco (+39xxxxxxxxxx) -> CHIUDI -> authorized
+[SMS] Mom (+39yyyyyyyyyy) -> STATO -> authorized
+[SMS] Mom (+39yyyyyyyyyy) -> APRI -> denied
+[SMS] Unknown (+39000000000) -> forwarded to admins
 ```
 
 ## Best Practices

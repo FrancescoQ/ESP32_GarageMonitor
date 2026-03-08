@@ -16,7 +16,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 ## Software Development Phases
 
-### Phase 0: Architecture & Foundation (Week 1)
+### Phase 0: Architecture & Foundation (Week 1) — COMPLETE
 
 **Objectives:**
 - Design clean OOP architecture with proper class structure
@@ -60,7 +60,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 ---
 
-### Phase 1: Door Monitoring + SMS Core (Week 2-3)
+### Phase 1: Door Monitoring + SMS Core (Week 2-3) — COMPLETE
 
 **Objectives:**
 - Implement door sensor monitoring
@@ -110,17 +110,17 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
    - COMMAND_PROCESSING: executing close command
 
 **Testing Scenarios:**
-- [ ] Reed switch detects door open/close
-- [ ] SMS sent on door state change
-- [ ] SMS received and parsed correctly
-- [ ] **Sender number verification works** (reject unauthorized senders)
-- [ ] **Authorized numbers can send commands**
-- [ ] Display updates in real-time
-- [ ] "CLOSE" command triggers GPIO output
-- [ ] Handle network dropouts gracefully
-- [ ] International number format handled correctly
-- [ ] SMS deleted from storage after processing
-- [ ] System handles near-full SMS storage gracefully
+- [x] Reed switch detects door open/close
+- [x] SMS sent on door state change
+- [x] SMS received and parsed correctly
+- [x] **Sender number verification works** (reject unauthorized senders)
+- [x] **Authorized numbers can send commands**
+- [x] Display updates in real-time
+- [x] "CLOSE" command triggers GPIO output
+- [x] Handle network dropouts gracefully
+- [x] International number format handled correctly
+- [x] SMS deleted from storage after processing
+- [x] System handles near-full SMS storage gracefully
 
 **Hardware Setup:**
 - ESP32 dev board
@@ -131,7 +131,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 ---
 
-### Phase 2: Environmental Monitoring (Week 4)
+### Phase 2: Environmental Monitoring (Week 4) — COMPLETE
 
 **Objectives:**
 - Add temperature and humidity sensing
@@ -162,11 +162,11 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - Trend indicators (rising/falling)
 
 **Testing Scenarios:**
-- [ ] Accurate temperature readings
-- [ ] Accurate humidity readings
-- [ ] Periodic SMS reports sent
-- [ ] Alerts trigger on threshold breach
-- [ ] Display shows all environmental data
+- [x] Accurate temperature readings
+- [x] Accurate humidity readings
+- ~~Periodic SMS reports~~ — intentionally skipped (no unsolicited SMS spam)
+- ~~Alerts trigger on threshold breach~~ — intentionally deferred
+- [x] Display shows all environmental data
 
 **Hardware Addition:**
 - BME280 or DHT22 sensor
@@ -174,7 +174,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 ---
 
-### Phase 3: Water Detection (Week 5)
+### Phase 3: Water Detection (Week 5) — COMPLETE
 
 **Objectives:**
 - Implement flood detection
@@ -201,11 +201,11 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
    - Override other operations
 
 **Testing Scenarios:**
-- [ ] Water sensor detects immersion reliably
-- [ ] SMS sent within seconds of detection
-- [ ] False positive prevention
-- [ ] System recovers after water removal
-- [ ] Works with inverted container design
+- [x] Water sensor detects immersion reliably
+- [x] SMS sent within seconds of detection
+- [x] False positive prevention
+- [x] System recovers after water removal
+- [x] Works with inverted container design
 
 **Hardware Addition:**
 - XKC-Y25 sensor module
@@ -214,43 +214,69 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 ---
 
-### Phase 4: Configuration & Web UI (Week 6)
+### Phase 4: Configuration & Web UI (Week 6) — COMPLETE
 
 **Objectives:**
 - Implement credit monitoring
 - Add WiFi setup mode
 - Logging and diagnostics
 - Remote configuration
+- NVS-backed user and settings persistence
+- Italian SMS aliases and responses
 
-**Implementation Steps:**
+**Implementation — Delivered:**
 
-1. **Credit Monitoring**
-   - SMS to Iliad 400 service
-   - Parse credit balance response
-   - Display on screen
-   - Optional SMS forward to user
-   - Scheduled checks (e.g., weekly)
+1. **ConfigManager Class** (NVS persistence)
+   - User storage: phone, permissions bitmask, name (seeded from Secrets.h on first boot)
+   - System settings: door alert delay, SMS poll interval, deep sleep flag, unknown SMS forwarding, auto-reboot config
+   - `begin()` loads NVS, seeds defaults if empty
+   - CRUD operations: `addUser()`, `removeUser()`, `updateUserPermissions()`, `findUserByPhone()`
+   - `getSettings()` / `setSettings()` for system configuration
 
-2. **Setup Mode (WiFi)**
-   - Triggered by button press during boot
-   - Temporary WiFi AP or STA mode
-   - Web UI for configuration
-   - Change thresholds, phone numbers, schedules
-   - WiFi disabled during normal operation
+2. **WebUIController Class** (WiFi AP + HTTP server)
+   - WiFi AP SSID: "GarageSetup" (password in Secrets.h)
+   - Setup mode entry: hold FUNC button during boot
+   - Frontend: Preact + Tailwind CSS, served from LittleFS (`data/` directory)
+   - API endpoints:
 
-3. **Diagnostics**
-   - System health checks
-   - Sensor validation
-   - Network quality metrics
-   - Uptime and statistics
-   - SMS command for status report
+   | Method | Endpoint | Description |
+   |--------|----------|-------------|
+   | GET | `/api/users` | List all users (phone, name, permissions) |
+   | POST | `/api/users` | Add user |
+   | DELETE | `/api/users?index=N` | Remove user |
+   | GET | `/api/settings` | Get all system settings |
+   | POST | `/api/settings` | Update settings (partial update) |
+   | GET | `/api/diagnostics` | Live sensor readings |
+   | POST | `/api/reboot` | Reboot ESP32 |
+
+3. **Credit Monitoring**
+   - CREDIT / CREDITO SMS command (requires PERM_CONFIG)
+   - Sends SMS with body "credito" to Iliad service number "400"
+   - Response from 400 forwarded to admins via unknown SMS forwarding
+
+4. **Italian SMS Support**
+   - Command aliases: STATUS/STATO, CLOSE/CHIUDI, OPEN/APRI, CREDIT/CREDITO
+   - All SMS responses in Italian (e.g., "Chiusura porta garage in corso.", "Permesso negato.")
+
+5. **Auto-Reboot Scheduling**
+   - Configurable via NVS/web UI: enable/disable, interval in days (1-30), target hour (0-23 or -1 for any)
+   - Optional admin notification before reboot
+   - NVS flag tracks reboot state for post-reboot notification
+
+6. **Additional Features**
+   - Unknown SMS forwarding to admins (configurable on/off)
+   - Boot SMS purge: deletes all queued SMS on startup, notifies admins
+   - FUNC button 5-second long-press reboot (works in any mode)
 
 **Testing Scenarios:**
-- [ ] Credit balance retrieved correctly
-- [ ] Setup mode activated via button
-- [ ] Web UI accessible and functional
-- [ ] Configuration persists after reboot
-- [ ] Diagnostics provide useful information
+- [x] Credit balance inquiry sent correctly
+- [x] Setup mode activated via FUNC button at boot
+- [x] Web UI accessible and functional
+- [x] Configuration persists after reboot (NVS)
+- [x] Diagnostics endpoint returns live sensor data
+- [x] Italian command aliases work
+- [x] Auto-reboot triggers on schedule
+- [x] Unknown SMS forwarded to admins
 
 ---
 
@@ -262,11 +288,15 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - Define wake-up triggers
 - Extend system runtime
 
+**Pre-existing from Phase 4:**
+- NVS `deepSleepEnabled` flag already exists and is togglable via web UI
+- DTR pin (GPIO 18) already defined in Config.h for SIM7000G sleep control
+
 **Implementation Steps:**
 
 1. **PowerManager Class**
    - Deep sleep configuration
-   - **Runtime-configurable**: deep sleep enable/disable flag stored in NVS, so it can be toggled from the web UI (Phase 4) or via SMS command (`SLEEP ON`/`SLEEP OFF`, ADMIN only) without physical access — useful for debugging field issues
+   - Use existing `deepSleepEnabled` NVS flag (already configurable via web UI)
    - When disabled, system stays awake and polls normally (higher power, but more responsive)
    - Wake-up source management (RTC, GPIO, SIM7000G interrupt)
    - Power consumption profiling
@@ -312,12 +342,12 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - USB-C power supply
 
 **Tests:**
-- [ ] ESP32 boots and LCD shows "Hello World"
-- [ ] SIM7000G initializes and registers on network
-- [ ] Send test SMS successfully
-- [ ] Receive SMS successfully
-- [ ] Reed switch detects state changes
-- [ ] GPIO output can trigger relay (simulated door close)
+- [x] ESP32 boots and LCD shows "Hello World"
+- [x] SIM7000G initializes and registers on network
+- [x] Send test SMS successfully
+- [x] Receive SMS successfully
+- [x] Reed switch detects state changes
+- [x] GPIO output can trigger relay (simulated door close)
 
 **Notes:**
 - Can skip traditional breadboard if not needed
@@ -507,7 +537,8 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 **Software:**
 - Arduino IDE or PlatformIO
 - ESP32 board support
-- Libraries: TinyGSM (SIM7000), Adafruit BME280, LiquidCrystal_I2C (display)
+- Libraries: TinyGSM (SIM7000), Adafruit BME280, LiquidCrystal_I2C (display), ArduinoJson (web API)
+- Built-in: WebServer, WiFi, Preferences (NVS), LittleFS (static file serving)
 - Serial monitor for debugging
 - AT command reference for SIM7000G
 
@@ -523,7 +554,7 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 
 ### SMS Command Authorization
 
-**Phase 1 Implementation (Hardcoded with Permissions):**
+**Default Configuration (Secrets.h, seeded to NVS on first boot):**
 ```cpp
 // Permission flags
 enum Permission {
@@ -562,18 +593,18 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 1. **Sender Verification**: Every incoming SMS is checked against authorized users
 2. **Permission Check**: Command is checked against user's permission flags
 3. **Granular Access**: Different users can have different capabilities
-4. **Rejection**: Unknown senders silently ignored, authorized users get "Permission denied"
+4. **Rejection**: Unknown senders optionally forwarded to admins then ignored; authorized users without permission get "Permesso negato."
 
 **Number Format Handling:**
 - Support multiple formats: `+39xxxxxxxxxx`, `0039xxxxxxxxxx`, `39xxxxxxxxxx`
 - Normalize to consistent format before comparison
 - Case-insensitive command parsing (CLOSE = close = Close)
 
-**Supported Commands (Phase 1):**
-- `STATUS` - Returns door state, temperature, humidity, signal strength
-- `CLOSE` - Triggers door close relay
-- `OPEN` - (Optional/Fun feature) Triggers door open relay
-  - *Note: Not strictly necessary since you'll have the physical remote when present, but it's secure with number verification and fun to implement!*
+**Supported Commands:**
+- `STATUS` / `STATO` - Returns door state, temperature, humidity, water status, signal, uptime
+- `CLOSE` / `CHIUDI` - Triggers door close relay sequence (STOP → pause → CLOSE)
+- `OPEN` / `APRI` - Triggers door open relay sequence (STOP → pause → OPEN)
+- `CREDIT` / `CREDITO` - Sends credit inquiry to Iliad 400 service (ADMIN only)
 
 **Security Benefits:**
 - SMS spoofing is difficult (cellular network handles authentication)
@@ -581,12 +612,13 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 - Simple allowlist model (easier to verify than blocklist)
 - Works even if WiFi/internet is down
 
-**Phase 4 Enhancement:**
-- Move authorized users and permissions to persistent storage (NVS)
-- Add/remove users via WiFi setup mode
-- Assign/revoke permissions via web UI (ADMIN only)
-- Permission inheritance/roles system
-- Optional: Add secret PIN for extra security (e.g., `CLOSE:1234`)
+**Phase 4 Enhancements (Done):**
+- ✅ Authorized users and permissions stored in NVS (via ConfigManager)
+- ✅ Add/remove users via WiFi setup mode web UI
+- ✅ Assign/revoke permissions via web UI
+- ✅ Unknown SMS forwarding to admins (configurable)
+- Future: Permission inheritance/roles system
+- Future: Optional secret PIN for extra security (e.g., `CLOSE:1234`)
 
 ---
 
@@ -608,23 +640,26 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 
 ## Success Criteria
 
-**Phase 1 Complete:**
-- System detects door open/close
-- SMS sent and received reliably
-- Display shows current status
-- Door close command executed
+**Phase 1 Complete:** ✅
+- ✓ System detects door open/close
+- ✓ SMS sent and received reliably
+- ✓ Display shows current status
+- ✓ Door close command executed
 
-**Phase 3 Complete:**
-- All sensors integrated and working
-- Water detection triggers immediate alert
-- Environmental data monitored
-- Multiple SMS commands supported
+**Phase 3 Complete:** ✅
+- ✓ All sensors integrated and working
+- ✓ Water detection triggers immediate alert
+- ✓ Environmental data monitored
+- ✓ Multiple SMS commands supported
 
-**Phase 4 Complete:**
-- Configuration persists via NVS
-- Web UI accessible for setup
-- Credit monitoring functional
-- All advanced features functional
+**Phase 4 Complete:** ✅
+- ✓ Configuration persists via NVS
+- ✓ Web UI accessible for setup (WiFi AP "GarageSetup")
+- ✓ Credit monitoring functional (CREDIT/CREDITO command)
+- ✓ Italian SMS aliases and responses
+- ✓ Auto-reboot scheduling
+- ✓ Unknown SMS forwarding to admins
+- ✓ Boot SMS purge for safety
 
 **Phase 5 Complete:**
 - Deep sleep reduces power consumption >80%
@@ -639,13 +674,13 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 
 ---
 
-## Timeline Estimate
+## Timeline
 
-- **Weeks 1-3:** Software Phases 0-1, Hardware Phase A (Foundation + Door + SMS)
-- **Weeks 4-5:** Software Phases 2-3, Hardware Phase B (Environmental + Water sensors)
-- **Week 6:** Software Phase 4, Hardware Phase C (Configuration & Web UI + Enclosure design)
-- **Week 7:** Software Phase 5, Hardware Phase D (Power management + Cable fab)
-- **Week 8+:** Hardware Phase E (Final assembly and installation)
+- **Weeks 1-3 (Feb 2026):** Software Phases 0-1, Hardware Phase A — ✅ Complete
+- **Weeks 4-5 (Mar 2026):** Software Phases 2-3, Hardware Phase B — ✅ Complete
+- **Week 6 (Mar 2026):** Software Phase 4 — ✅ Complete
+- **Week 7+:** Software Phase 5 (Power management) — Pending
+- **TBD:** Hardware Phases C-E (Enclosure, cables, installation)
 
 **Total Estimated Time:** 8-10 weeks for complete system
 
@@ -662,7 +697,7 @@ const AuthorizedUser AUTHORIZED_USERS[] = {
 
 ---
 
-**Version:** 1.0  
-**Last Updated:** February 2026  
-**Author:** Francesco  
+**Version:** 1.1
+**Last Updated:** March 2026
+**Author:** Francesco
 **Project:** Venice Garage Monitoring System

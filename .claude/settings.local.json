@@ -5,7 +5,10 @@
       "WebSearch",
       "Bash(git check-ignore include/Secrets.h)",
       "Bash(find /workspace/src /workspace/include -type f \\\\\\( -name \"*.h\" -o -name \"*.cpp\" \\\\\\) 2>/dev/null | sort)",
-      "Bash(find /workspace/webui_example -type f -name \"*.json\" -o -name \"*.js\" -o -name \"*.html\" -o -name \"*.css\" -o -name \"*.config.*\" 2>/dev/null | head -20)"
+      "Bash(find /workspace/webui_example -type f -name \"*.json\" -o -name \"*.js\" -o -name \"*.html\" -o -name \"*.css\" -o -name \"*.config.*\" 2>/dev/null | head -20)",
+      "Bash(find /workspace/include -type f -name \"*.h\" 2>/dev/null | sort)",
+      "Bash(find /workspace/src -type f \\\\\\( -name \"*.h\" -o -name \"*.cpp\" \\\\\\) 2>/dev/null | sort)",
+      "Bash(find /workspace -name \"*.h\" -type f 2>/dev/null | grep -v \".git\")"
     ]
   }
 }

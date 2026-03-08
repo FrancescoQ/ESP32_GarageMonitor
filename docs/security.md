@@ -36,15 +36,17 @@ The system supports **granular permissions** for different users:
 - **CONTROL**: Family member (can check status and close door, but not open it remotely)
 - **MONITOR**: Neighbor checking on garage while you're away (status only, no control)
 
-### Phase 1: Hardcoded Numbers with Permissions
+### Authorization Database (NVS-backed)
+
+Users are stored in ESP32 NVS (non-volatile storage) via `ConfigManager`. On first boot, defaults from `Secrets.h` are seeded into NVS. Users can then be managed via the web UI without reflashing.
 
 ```cpp
-// Permission flags
+// Permission flags (Config.h)
 enum Permission {
     PERM_STATUS = 0x01,  // Can request status
     PERM_CLOSE  = 0x02,  // Can close door
     PERM_OPEN   = 0x04,  // Can open door
-    PERM_CONFIG = 0x08   // Can change settings
+    PERM_CONFIG = 0x08   // Can change settings (+ credit check)
 };
 
 // Permission presets
@@ -52,35 +54,30 @@ const uint8_t PERM_ADMIN   = PERM_STATUS | PERM_CLOSE | PERM_OPEN | PERM_CONFIG;
 const uint8_t PERM_CONTROL = PERM_STATUS | PERM_CLOSE;
 const uint8_t PERM_MONITOR = PERM_STATUS;
 
-// Authorized users with permissions
-struct AuthorizedUser {
-    const char* number;
-    uint8_t permissions;
-    const char* name;  // Optional, for logging
-};
-
-const AuthorizedUser AUTHORIZED_USERS[] = {
-    {"+39xxxxxxxxxx", PERM_ADMIN,   "Francesco"},      // Full access
-    {"+39yyyyyyyyyy", PERM_CONTROL, "Family Member"},  // Status + Close only
-    {"+39zzzzzzzzzz", PERM_MONITOR, "Neighbor"},       // Status only
+// Default users seeded from Secrets.h on first boot
+const AuthorizedUser DEFAULT_USERS[] = {
+    {"+39xxxxxxxxxx", PERM_ADMIN,   "Francesco"},
+    {"+39yyyyyyyyyy", PERM_CONTROL, "Family Member"},
     {nullptr, 0, nullptr}  // Terminator
 };
 ```
 
+**NVS storage structure:**
+- Namespace `"users"`: phone number, permissions bitmask, display name per user
+- Namespace `"settings"`: system configuration values
+
 **How it works:**
 1. SMS arrives from `+39yyyyyyyyyy`
-2. System finds user in `AUTHORIZED_USERS` array
+2. ConfigManager looks up user by normalized phone number in NVS
 3. Checks if user has permission for requested command
 4. User has `PERM_CONTROL` → Can STATUS ✅, CLOSE ✅, but not OPEN ❌
-5. If no permission → Reject with message "Permission denied"
-6. If unknown sender → Silently ignore (no response)
+5. If no permission → Reply "Permesso negato."
+6. If unknown sender → Optionally forward to admins (configurable), then ignore
 
-### Phase 5: Persistent Storage (Flexible)
-
-- Authorized users and permissions stored in NVS (non-volatile storage)
-- Add/remove users via WiFi setup mode
-- Assign/revoke permissions via web UI or SMS (ADMIN only)
-- Survives firmware updates and reboots
+**User management via web UI:**
+- Hold FUNC button at boot → WiFi AP "GarageSetup" activates
+- Navigate to web UI → manage users (add/remove/update permissions)
+- Changes persist in NVS, survive reboots and firmware updates
 
 ## Number Format Normalization
 
@@ -143,16 +140,20 @@ String normalizePhoneNumber(const String& number) {
    YES       NO
     │         │
     │         ▼
-    │   ┌─────────┐
-    │   │ Ignore  │
-    │   │ (Silent)│
-    │   └─────────┘
+    │   ┌──────────────┐
+    │   │Forward to    │
+    │   │admins (if    │
+    │   │enabled), then│
+    │   │ignore        │
+    │   └──────────────┘
     │
     ▼
 ┌─────────────────┐
 │ Parse Command   │
-│   (STATUS/      │
-│  OPEN/CLOSE)    │
+│ STATUS/STATO    │
+│ CLOSE/CHIUDI    │
+│ OPEN/APRI       │
+│ CREDIT/CREDITO  │
 └────────┬────────┘
          │
          ▼
@@ -185,49 +186,59 @@ String normalizePhoneNumber(const String& number) {
 
 ## Supported Commands
 
-### STATUS
+### STATUS / STATO
 **Requires**: `PERM_STATUS` (all users)
 **Action**: Returns current garage status
-**Response**: "Garage OPEN. Temp: 18.5C, Humidity: 65%, Signal: -67dBm"
+**Response** (Italian, multi-line):
+```
+Porta: APERTA (5min)
+Temp: 21.5C
+Umidita': 65.3%
+Acqua: OK
+Segnale: **
+Attivo da: 2g 3h 45m
+```
 
 **Examples:**
 - ✅ ADMIN user sends STATUS → Gets status
-- ✅ CONTROL user sends STATUS → Gets status
+- ✅ CONTROL user sends STATO → Gets status (Italian alias)
 - ✅ MONITOR user sends STATUS → Gets status
 
-### CLOSE
+### CLOSE / CHIUDI
 **Requires**: `PERM_CLOSE` (ADMIN, CONTROL)
-**Action**: Triggers door close relay (GPIO pulse)
-**Response**: "Door close command sent"
+**Action**: Triggers door close relay sequence (STOP → pause → CLOSE)
+**Response**: "Chiusura porta garage in corso."
 
 **Examples:**
 - ✅ ADMIN user sends CLOSE → Door closes
-- ✅ CONTROL user sends CLOSE → Door closes
-- ❌ MONITOR user sends CLOSE → "Permission denied"
+- ✅ CONTROL user sends CHIUDI → Door closes (Italian alias)
+- ❌ MONITOR user sends CLOSE → "Permesso negato."
 
-### OPEN (Optional/Fun)
+### OPEN / APRI
 **Requires**: `PERM_OPEN` (ADMIN only)
-**Action**: Triggers door open relay (GPIO pulse)
-**Response**: "Door open command sent"
-**Note**: Not strictly needed since you'll have the physical remote when present, but fun to implement!
+**Action**: Triggers door open relay sequence (STOP → pause → OPEN)
+**Response**: "Apertura porta garage in corso."
 
 **Examples:**
 - ✅ ADMIN user sends OPEN → Door opens
-- ❌ CONTROL user sends OPEN → "Permission denied"
-- ❌ MONITOR user sends OPEN → "Permission denied"
+- ❌ CONTROL user sends APRI → "Permesso negato."
+- ❌ MONITOR user sends OPEN → "Permesso negato."
 
-### CONFIG
-**Requires**: `PERM_CONFIG` (ADMIN only, Phase 5)
-**Action**: Updates system configuration
-**Response**: "Config updated: temp_threshold=5"
+### CREDIT / CREDITO
+**Requires**: `PERM_CONFIG` (ADMIN only)
+**Action**: Sends SMS with "credito" to Iliad service number 400
+**Response**: "Richiesta credito inviata al 400."
+**Note**: The reply from 400 arrives as an SMS from an unknown sender and is forwarded to admins if forwarding is enabled.
 
 **Examples:**
-- ✅ ADMIN sends "CONFIG temp_low=5" → Updates setting
-- ❌ CONTROL sends "CONFIG temp_low=5" → "Permission denied"
+- ✅ ADMIN user sends CREDITO → Credit inquiry sent
+- ❌ CONTROL user sends CREDIT → "Permesso negato."
 
 ### Unknown Command
-**Action**: None
-**Response**: "Unknown command" (to authorized users) or silent ignore (unknown senders)
+**Action**: None (silently ignored for all users, authorized or not)
+
+### Unknown Sender
+**Action**: If `forwardUnknownSms` is enabled, the message is forwarded to all admin users as "INOLTRO da +39xxx:\n<message>". Otherwise silently ignored.
 
 ## Why This Is Secure
 
@@ -246,12 +257,13 @@ String normalizePhoneNumber(const String& number) {
 - No internet connection required
 - Can't be hacked via cloud service vulnerability
 
-### 4. Silent Failures
+### 4. Silent Failures (with optional forwarding)
 - Unknown senders get no response
-- Doesn't leak information about valid commands
+- Optionally, unknown SMS are forwarded to admins for awareness (configurable via web UI)
+- Doesn't leak information about valid commands to unknown senders
 - No error messages to help attackers
 
-## Optional Enhancements (Phase 5)
+## Future Enhancements
 
 ### 1. Secret PIN
 Add a PIN requirement for critical commands:
