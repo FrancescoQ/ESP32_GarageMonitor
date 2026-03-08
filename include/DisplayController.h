@@ -57,6 +57,19 @@ public:
    */
   void showNotification(const char* line1, const char* line2 = nullptr);
 
+  /**
+   * @brief Check if display is currently on (backlight + content active)
+   * @return true if display is on (pages, notification, or message showing)
+   */
+  bool isDisplayOn() const;
+
+  /**
+   * @brief Show setup mode screen with SSID and IP address
+   * @param ssid WiFi AP SSID
+   * @param ip IP address string (e.g. "192.168.4.1")
+   */
+  void showSetupMode(const char* ssid, const char* ip);
+
 private:
   static const int NUM_PAGES = 3;
 
@@ -92,12 +105,4 @@ private:
   void renderEnvironment();
   void renderSystem();
   void checkFuncButton();
-
-public:
-  /**
-   * @brief Show setup mode screen with SSID and IP address
-   * @param ssid WiFi AP SSID
-   * @param ip IP address string (e.g. "192.168.4.1")
-   */
-  void showSetupMode(const char* ssid, const char* ip);
 };

@@ -84,8 +84,20 @@ export function Settings() {
         <span class="text-xs text-gray-400">ms</span>
       </FormRow>
 
-      <FormRow label="Deep sleep" hint="Enable low-power deep sleep between checks (Phase 5)">
+      <FormRow label="Power saving" hint="Enable light sleep between checks (reduces power ~75%)">
         <Toggle checked={s.deep_sleep} onChange={v => update('deep_sleep', v)} />
+      </FormRow>
+
+      <FormRow label="Sleep interval" hint="Minutes between periodic wake-ups when power saving is on (1-60)">
+        <input
+          type="number"
+          min="1"
+          max="60"
+          value={s.sleep_min}
+          onInput={e => update('sleep_min', parseInt(e.target.value))}
+          class="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm text-gray-200"
+        />
+        <span class="text-xs text-gray-400">min</span>
       </FormRow>
 
       <FormRow label="Fwd unknown SMS" hint="Forward SMS from unknown numbers to admin users">

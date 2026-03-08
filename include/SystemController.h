@@ -11,6 +11,7 @@
 #include "EnvironmentalSensor.h"
 #include "ConfigManager.h"
 #include "WebUIController.h"
+#include "PowerManager.h"
 
 /**
  * @brief Main system coordinator
@@ -62,12 +63,16 @@ private:
   EnvironmentalSensor m_env;
   ConfigManager m_config;
   WebUIController m_webUI;
+  PowerManager m_powerManager;
   bool m_setupMode;
 
   // Normal mode state
   unsigned long m_lastSMSCheck;
   bool m_alertSent;
   bool m_doorWasOpen;
+
+  // Power saving state
+  unsigned long m_lastWakeTime;
 
   // Environmental threshold alert state
   bool m_tempLowAlertSent;

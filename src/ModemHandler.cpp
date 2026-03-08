@@ -98,6 +98,12 @@ bool ModemHandler::begin() {
     // Set SMS to text mode
     sendCommand("AT+CMGF=1", 3000);
     Serial.println(F("[MODEM] SMS text mode enabled"));
+
+    // Enable SMS URC notifications — modem sends +CMTI on UART when SMS
+    // arrives. Used as instant "go poll now" trigger in both normal and
+    // power-saving modes. URC bytes are stripped from AT command responses.
+    sendCommand("AT+CNMI=2,1,0,0,0", 3000);
+    Serial.println(F("[MODEM] SMS URC notification enabled"));
   } else {
     Serial.println(F("[MODEM] Network registration timeout (60s)"));
     Serial.println(F("[MODEM] Check antenna and signal strength"));
@@ -412,6 +418,19 @@ String ModemHandler::sendCommand(const char* cmd, unsigned long timeout) {
       break;
     }
     delay(10);
+  }
+
+  // Strip any +CMTI URC lines that leaked into the response.
+  // These arrive asynchronously when an SMS is received and can
+  // corrupt AT command parsing if not removed.
+  int urcPos;
+  while ((urcPos = response.indexOf("+CMTI:")) >= 0) {
+    int urcEnd = response.indexOf('\n', urcPos);
+    if (urcEnd < 0) {
+      response.remove(urcPos);
+    } else {
+      response.remove(urcPos, urcEnd - urcPos + 1);
+    }
   }
 
   Serial.print(F("[AT] Response: '"));

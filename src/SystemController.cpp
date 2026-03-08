@@ -22,6 +22,7 @@ SystemController::SystemController()
     m_lastSMSCheck(0),
     m_alertSent(false),
     m_doorWasOpen(false),
+    m_lastWakeTime(0),
     m_tempLowAlertSent(false),
     m_tempHighAlertSent(false),
     m_humHighAlertSent(false) {
@@ -140,6 +141,12 @@ bool SystemController::detectSetupMode() {
 // =============================================================================
 
 void SystemController::beginNormalMode() {
+  // Power manager
+  m_powerManager.begin();
+  if (m_config.getSettings().deepSleepEnabled) {
+    Serial.println(F("[SYS] Power saving mode enabled"));
+  }
+
   // Modem (display shows splash during this slow init)
   if (m_modem.begin()) {
     Serial.println(F("[SYS] Modem initialized successfully"));
@@ -269,7 +276,12 @@ void SystemController::loopNormalMode() {
     }
   }
 
-  m_modem.loop();
+  // Signal monitoring: in power-saving mode, only check when already
+  // querying modem for SMS (avoids unnecessary checks on every wake).
+  // In normal mode, check every 10s as before.
+  if (!m_config.getSettings().deepSleepEnabled) {
+    m_modem.loop();
+  }
 
   // Door state change detection
   bool doorOpen = m_door.isOpen();
@@ -371,9 +383,17 @@ void SystemController::loopNormalMode() {
   unsigned long now = millis();
   uint32_t pollInterval = m_config.getSettings().smsPollMs;
 
-  // SMS polling: check for incoming messages
+  // SMS polling: check for incoming messages on timer interval.
+  // In power-saving mode, CNMI URC wakes the ESP32 via GPIO 16 and
+  // this poll runs immediately after wake. In normal mode, polls every
+  // smsPollMs (default 5s).
   if (m_modem.isNetworkConnected() && now - m_lastSMSCheck >= pollInterval) {
     m_lastSMSCheck = now;
+
+    // In power-saving mode, piggyback signal check onto SMS poll
+    if (m_config.getSettings().deepSleepEnabled) {
+      m_modem.loop();
+    }
 
     int count = m_modem.checkForSMS();
 
@@ -409,6 +429,33 @@ void SystemController::loopNormalMode() {
     if (processed > 0) {
       m_modem.deleteReadSMS();
     }
+  }
+
+  // Power saving: enter light sleep after processing all events
+  if (m_config.getSettings().deepSleepEnabled) {
+    // Stay awake while display is on (user interacting via FUNC/notification)
+    if (m_display.isDisplayOn()) {
+      return;
+    }
+
+    // Stay awake minimum 2s after last wake to allow button debounce
+    // to settle and relay sequences to complete
+    const unsigned long MIN_AWAKE_MS = 2000;
+    if (millis() - m_lastWakeTime < MIN_AWAKE_MS) {
+      return;
+    }
+
+    // CNMI is always enabled — modem sends +CMTI URC on UART when
+    // SMS arrives, pulling GPIO 16 LOW to wake the ESP32. After
+    // wake, the normal timer-based SMS poll runs immediately.
+    WakeReason reason = m_powerManager.enterLightSleep(
+      m_door.isOpen(),
+      m_config.getSettings().sleepIntervalMin
+    );
+    m_lastWakeTime = millis();
+
+    Serial.print(F("[SYS] Wake reason: "));
+    Serial.println(static_cast<int>(reason));
   }
 }
 
@@ -574,6 +621,10 @@ String SystemController::buildStatusReply() {
     reply += String(days) + "g ";
   }
   reply += String(hours) + "h " + String(mins) + "m";
+
+  // Power mode
+  reply += "\nModalita': ";
+  reply += m_config.getSettings().deepSleepEnabled ? "Risparmio" : "Normale";
 
   return reply;
 }

@@ -158,8 +158,9 @@ void DisplayController::checkFuncButton() {
     m_funcLastRaw = raw;
   }
 
-  // Long-press reboot: held for 3s in any mode
-  if (m_funcPressed && millis() - m_funcPressStart >= FUNC_REBOOT_HOLD_MS) {
+  // Long-press reboot: held for 5s in any mode
+  // Check raw == LOW to prevent stale m_funcPressed from triggering after sleep
+  if (m_funcPressed && raw == LOW && millis() - m_funcPressStart >= FUNC_REBOOT_HOLD_MS) {
     Serial.println(F("[SYS] FUNC long-press — rebooting"));
     m_lcd.clear();
     m_lcd.setCursor(0, 0);
@@ -277,6 +278,10 @@ void DisplayController::renderEnvironment() {
   } else {
     m_lcd.print(F("Water: OK"));
   }
+}
+
+bool DisplayController::isDisplayOn() const {
+  return m_displayOn;
 }
 
 void DisplayController::showSetupMode(const char* ssid, const char* ip) {

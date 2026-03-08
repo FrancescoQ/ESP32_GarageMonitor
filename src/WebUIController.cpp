@@ -183,6 +183,7 @@ void WebUIController::handleGetSettings() {
   doc["door_alert_min"] = s.doorAlertMin;
   doc["sms_poll_ms"] = s.smsPollMs;
   doc["deep_sleep"] = s.deepSleepEnabled;
+  doc["sleep_min"] = s.sleepIntervalMin;
   doc["fwd_unknown"] = s.forwardUnknownSms;
   doc["notify_reboot"] = s.notifyReboot;
   doc["auto_reboot"] = s.autoRebootEnabled;
@@ -227,6 +228,12 @@ void WebUIController::handlePostSettings() {
   }
   if (doc.containsKey("deep_sleep")) {
     s.deepSleepEnabled = doc["deep_sleep"];
+  }
+  if (doc.containsKey("sleep_min")) {
+    uint32_t val = doc["sleep_min"];
+    if (val >= 1 && val <= 60) {
+      s.sleepIntervalMin = val;
+    }
   }
   if (doc.containsKey("fwd_unknown")) {
     s.forwardUnknownSms = doc["fwd_unknown"];

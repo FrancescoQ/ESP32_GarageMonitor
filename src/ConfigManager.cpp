@@ -26,6 +26,7 @@ static const char* KEY_NOTIFY_REBOOT = "notify_reboot";
 static const char* KEY_AUTO_REBOOT = "auto_reboot";
 static const char* KEY_REBOOT_DAYS = "reboot_days";
 static const char* KEY_REBOOT_HOUR = "reboot_hour";
+static const char* KEY_SLEEP_MIN = "sleep_min";
 static const char* KEY_ENV_ALERT = "env_alert";
 static const char* KEY_TEMP_MIN = "temp_min";
 static const char* KEY_TEMP_MAX = "temp_max";
@@ -42,6 +43,7 @@ ConfigManager::ConfigManager()
   m_settings.autoRebootEnabled = DEFAULT_AUTO_REBOOT_ENABLED;
   m_settings.autoRebootDays = DEFAULT_AUTO_REBOOT_DAYS;
   m_settings.autoRebootHour = DEFAULT_AUTO_REBOOT_HOUR;
+  m_settings.sleepIntervalMin = DEFAULT_SLEEP_INTERVAL_MIN;
   m_settings.envAlertEnabled = DEFAULT_ENV_ALERT_ENABLED;
   m_settings.tempMinThreshold = DEFAULT_TEMP_MIN_THRESHOLD;
   m_settings.tempMaxThreshold = DEFAULT_TEMP_MAX_THRESHOLD;
@@ -76,6 +78,8 @@ void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
   Serial.print(m_settings.smsPollMs);
   Serial.print(F("ms, deep_sleep="));
   Serial.print(m_settings.deepSleepEnabled ? "ON" : "OFF");
+  Serial.print(F(", sleep_min="));
+  Serial.print(m_settings.sleepIntervalMin);
   Serial.print(F(", fwd_unknown="));
   Serial.print(m_settings.forwardUnknownSms ? "ON" : "OFF");
   Serial.print(F(", notify_reboot="));
@@ -205,6 +209,8 @@ void ConfigManager::setSettings(const SystemSettings& settings) {
   Serial.print(m_settings.smsPollMs);
   Serial.print(F("ms, deep_sleep="));
   Serial.print(m_settings.deepSleepEnabled ? "ON" : "OFF");
+  Serial.print(F(", sleep_min="));
+  Serial.print(m_settings.sleepIntervalMin);
   Serial.print(F(", fwd_unknown="));
   Serial.print(m_settings.forwardUnknownSms ? "ON" : "OFF");
   Serial.print(F(", notify_reboot="));
@@ -296,6 +302,7 @@ void ConfigManager::loadSettings() {
   m_settings.autoRebootEnabled = prefs.getBool(KEY_AUTO_REBOOT, DEFAULT_AUTO_REBOOT_ENABLED);
   m_settings.autoRebootDays = prefs.getUInt(KEY_REBOOT_DAYS, DEFAULT_AUTO_REBOOT_DAYS);
   m_settings.autoRebootHour = prefs.getChar(KEY_REBOOT_HOUR, DEFAULT_AUTO_REBOOT_HOUR);
+  m_settings.sleepIntervalMin = prefs.getUInt(KEY_SLEEP_MIN, DEFAULT_SLEEP_INTERVAL_MIN);
   m_settings.envAlertEnabled = prefs.getBool(KEY_ENV_ALERT, DEFAULT_ENV_ALERT_ENABLED);
   m_settings.tempMinThreshold = prefs.getFloat(KEY_TEMP_MIN, DEFAULT_TEMP_MIN_THRESHOLD);
   m_settings.tempMaxThreshold = prefs.getFloat(KEY_TEMP_MAX, DEFAULT_TEMP_MAX_THRESHOLD);
@@ -316,6 +323,7 @@ void ConfigManager::saveSettings() {
   prefs.putBool(KEY_AUTO_REBOOT, m_settings.autoRebootEnabled);
   prefs.putUInt(KEY_REBOOT_DAYS, m_settings.autoRebootDays);
   prefs.putChar(KEY_REBOOT_HOUR, m_settings.autoRebootHour);
+  prefs.putUInt(KEY_SLEEP_MIN, m_settings.sleepIntervalMin);
   prefs.putBool(KEY_ENV_ALERT, m_settings.envAlertEnabled);
   prefs.putFloat(KEY_TEMP_MIN, m_settings.tempMinThreshold);
   prefs.putFloat(KEY_TEMP_MAX, m_settings.tempMaxThreshold);
