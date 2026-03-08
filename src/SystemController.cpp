@@ -174,16 +174,47 @@ void SystemController::purgeBootMessages() {
 
   Serial.print(F("[SYS] Boot: found "));
   Serial.print(count);
-  Serial.println(F(" queued SMS — purging for safety"));
+  Serial.println(F(" queued SMS — filtering stale commands"));
 
-  m_modem.deleteAllSMS();
+  int purged = 0;
+  int forwarded = 0;
 
-  // Notify admins
-  char msg[100];
-  snprintf(msg, sizeof(msg),
-    "Sistema riavviato. %d SMS in coda eliminati per sicurezza. "
-    "Reinviare i comandi se necessario.", count);
-  notifyAdmins(msg);
+  for (int i = 0; i < count; i++) {
+    ReceivedSMS sms;
+    int idx = m_modem.getSMSIndex(i);
+    if (!m_modem.readSMS(idx, sms)) {
+      continue;
+    }
+
+    ParseResult result = m_parser.parse(sms.sender, sms.message);
+
+    if (result.isAuthorized && result.command != SMSCommand::UNKNOWN) {
+      // Stale command from authorized user — discard for safety
+      Serial.print(F("[SYS] Boot: discarding stale command '"));
+      Serial.print(sms.message);
+      Serial.print(F("' from "));
+      Serial.println(result.userName);
+      purged++;
+    } else {
+      // Unknown sender or non-command — process normally (forwards to admins)
+      Serial.print(F("[SYS] Boot: processing non-command SMS from "));
+      Serial.println(sms.sender);
+      handleSMS(sms);
+      forwarded++;
+    }
+  }
+
+  // Clean up all read messages
+  m_modem.deleteReadSMS();
+
+  // Notify admins about the reboot and what was purged
+  if (purged > 0) {
+    char msg[120];
+    snprintf(msg, sizeof(msg),
+      "Sistema riavviato. %d comandi in coda eliminati per sicurezza. "
+      "Reinviare i comandi se necessario.", purged);
+    notifyAdmins(msg);
+  }
 }
 
 void SystemController::loopNormalMode() {
