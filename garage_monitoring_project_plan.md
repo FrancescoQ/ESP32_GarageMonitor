@@ -278,6 +278,10 @@ IoT-based garage monitoring and control system for remote monitoring of door sta
 - [x] Auto-reboot triggers on schedule
 - [x] Unknown SMS forwarded to admins
 
+**Planned but not yet implemented:**
+- **System event log**: Ring buffer on LittleFS logging all significant events (boot, door changes, water alerts, SMS sent/received, errors), viewable from web UI diagnostics page
+- **Temperature/humidity threshold alerts**: Configurable thresholds with SMS notifications (deferred from Phase 2, not needed for current use case)
+
 ---
 
 ### Phase 5: Power Management (Week 7+)

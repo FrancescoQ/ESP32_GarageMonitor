@@ -118,6 +118,10 @@ IoT-based garage monitoring system with SMS remote control for monitoring door s
 - Power consumption optimization
 - DTR pin (GPIO 18) already initialized in Config.h for sleep control
 
+### Planned Future Features
+- **System event log**: Ring buffer on LittleFS logging significant events (boot, door changes, water alerts, SMS sent/received, errors), viewable from web UI diagnostics page
+- **Temperature/humidity threshold alerts**: Configurable thresholds with SMS notifications (deferred from Phase 2)
+
 ---
 
 ## Architecture Design
@@ -278,12 +282,21 @@ monitor_filters = colorize, esp32_exception_decoder
 - ✓ Display shows current status
 - ✓ CLOSE command executes
 
-### Final System
+### Phase 4 Complete
+- ✓ Configuration persists via NVS
+- ✓ Web UI accessible for setup (WiFi AP "GarageSetup")
+- ✓ Credit monitoring functional (CREDIT/CREDITO command)
+- ✓ Italian SMS aliases and responses
+- ✓ Auto-reboot scheduling
+- ✓ Unknown SMS forwarding to admins
+- ✓ Boot SMS purge for safety
+
+### Final System (Phase 5 + Installation)
 - ✓ All sensors integrated and working
 - ✓ SMS authorization secure and functional
-- ✓ Deep sleep reduces power >80%
-- ✓ System runs reliably for weeks
-- ✓ Installed in garage and field-tested
+- Deep sleep reduces power >80%
+- System runs reliably for weeks
+- Installed in garage and field-tested
 
 ---
 

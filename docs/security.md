@@ -276,7 +276,7 @@ CLOSE:1234
 Only authorized numbers with correct PIN execute.
 
 ### 2. Command Logging
-Log all command attempts (authorized and unauthorized) to SD card for audit trail.
+Log all command attempts (authorized and unauthorized) to a LittleFS-based event log for audit trail. Could share the same ring buffer as the planned system event log, viewable from the web UI diagnostics page.
 
 ### 3. Rate Limiting
 Limit commands to X per hour to prevent relay wear from accidental spam.
