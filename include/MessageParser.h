@@ -53,6 +53,8 @@ enum class SMSCommand {
   CLOSE,
   OPEN,
   CREDIT,
+  REBOOT,
+  HELP,
   UNKNOWN
 };
 
@@ -62,9 +64,10 @@ enum class SMSCommand {
 
 struct ParseResult {
   SMSCommand command;
-  bool isAuthorized;     // Sender found in allowlist
-  bool hasPermission;    // Sender has permission for this command
-  const char* userName;  // Name from allowlist (nullptr if unknown sender)
+  bool isAuthorized;        // Sender found in allowlist
+  bool hasPermission;       // Sender has permission for this command
+  const char* userName;     // Name from allowlist (nullptr if unknown sender)
+  uint8_t userPermissions;  // Full permission bitmask (for HELP personalization)
 };
 
 // ============================================================================

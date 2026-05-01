@@ -23,13 +23,13 @@ ParseResult MessageParser::parse(const String& sender, const String& message) co
   uint8_t userPerms = 0;
 
   if (!findUser(normalized, userName, userPerms)) {
-    return {cmd, false, false, nullptr};
+    return {cmd, false, false, nullptr, 0};
   }
 
   uint8_t required = requiredPermission(cmd);
   bool permitted = (required != 0) && ((userPerms & required) != 0);
 
-  return {cmd, true, permitted, userName};
+  return {cmd, true, permitted, userName, userPerms};
 }
 
 String MessageParser::normalizePhoneNumber(const String& number) {
@@ -80,6 +80,8 @@ SMSCommand MessageParser::parseCommand(const String& message) {
   if (trimmed == "CLOSE" || trimmed == "CHIUDI") return SMSCommand::CLOSE;
   if (trimmed == "OPEN" || trimmed == "APRI") return SMSCommand::OPEN;
   if (trimmed == "CREDIT" || trimmed == "CREDITO") return SMSCommand::CREDIT;
+  if (trimmed == "REBOOT" || trimmed == "RIAVVIO") return SMSCommand::REBOOT;
+  if (trimmed == "HELP" || trimmed == "AIUTO") return SMSCommand::HELP;
 
   return SMSCommand::UNKNOWN;
 }
@@ -90,6 +92,8 @@ uint8_t MessageParser::requiredPermission(SMSCommand cmd) {
     case SMSCommand::CLOSE:  return PERM_CLOSE;
     case SMSCommand::OPEN:   return PERM_OPEN;
     case SMSCommand::CREDIT:  return PERM_CONFIG;
+    case SMSCommand::REBOOT:  return PERM_CONFIG;
+    case SMSCommand::HELP:    return PERM_STATUS;
     case SMSCommand::UNKNOWN: return 0;
   }
   return 0;

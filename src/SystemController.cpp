@@ -144,15 +144,23 @@ void SystemController::beginNormalMode() {
   if (m_modem.begin()) {
     Serial.println(F("[SYS] Modem initialized successfully"));
 
-    // After a scheduled auto-reboot, confirm system is back online
+    // After a reboot, confirm system is back online
+    // Values: 0=none, 1=scheduled reboot, 2=SMS-commanded reboot
     Preferences rebootFlag;
     rebootFlag.begin("system", false);
-    bool pending = rebootFlag.getBool("reboot", false);
-    if (pending) {
-      rebootFlag.putBool("reboot", false);
-      Serial.println(F("[SYS] Back online after scheduled reboot"));
-      if (m_config.getSettings().notifyReboot) {
-        notifyAdmins("Sistema online dopo riavvio programmato.");
+    uint8_t pending = rebootFlag.getUChar("reboot", 0);
+    if (pending != 0) {
+      rebootFlag.putUChar("reboot", 0);
+      if (pending == 2) {
+        Serial.println(F("[SYS] Back online after SMS-commanded reboot"));
+        if (m_config.getSettings().notifyReboot) {
+          notifyAdmins("Sistema online dopo riavvio da comando SMS.");
+        }
+      } else {
+        Serial.println(F("[SYS] Back online after scheduled reboot"));
+        if (m_config.getSettings().notifyReboot) {
+          notifyAdmins("Sistema online dopo riavvio programmato.");
+        }
       }
     }
     rebootFlag.end();
@@ -164,7 +172,7 @@ void SystemController::beginNormalMode() {
     // Clear reboot flag even on modem failure
     Preferences rebootFlag;
     rebootFlag.begin("system", false);
-    rebootFlag.putBool("reboot", false);
+    rebootFlag.putUChar("reboot", 0);
     rebootFlag.end();
   }
 }
@@ -236,7 +244,7 @@ void SystemController::loopNormalMode() {
         {
           Preferences rebootFlag;
           rebootFlag.begin("system", false);
-          rebootFlag.putBool("reboot", true);
+          rebootFlag.putUChar("reboot", 1);
           rebootFlag.end();
         }
         ESP.restart();
@@ -260,7 +268,7 @@ void SystemController::loopNormalMode() {
           {
             Preferences rebootFlag;
             rebootFlag.begin("system", false);
-            rebootFlag.putBool("reboot", true);
+            rebootFlag.putUChar("reboot", 1);
             rebootFlag.end();
           }
           ESP.restart();
@@ -503,6 +511,29 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
       m_display.showNotification(notifyLine1, "CMD: CREDITO");
       break;
 
+    case SMSCommand::HELP: {
+      String reply = buildHelpReply(result.userPermissions);
+      Serial.print(F("[SYS] HELP reply: "));
+      Serial.println(reply);
+      m_modem.sendSMS(sms.sender.c_str(), reply.c_str());
+      m_display.showNotification(notifyLine1, "CMD: AIUTO");
+      break;
+    }
+
+    case SMSCommand::REBOOT:
+      Serial.println(F("[SYS] Executing REBOOT command"));
+      m_modem.sendSMS(sms.sender.c_str(), "Sistema in riavvio.");
+      m_display.showNotification(notifyLine1, "CMD: RIAVVIO");
+      {
+        Preferences rebootFlag;
+        rebootFlag.begin("system", false);
+        rebootFlag.putUChar("reboot", 2);
+        rebootFlag.end();
+      }
+      delay(5000);  // Allow SMS to transmit before restarting
+      ESP.restart();
+      break;
+
     case SMSCommand::UNKNOWN:
       // Unreachable — handled above, but keeps compiler happy
       break;
@@ -574,6 +605,25 @@ String SystemController::buildStatusReply() {
     reply += String(days) + "g ";
   }
   reply += String(hours) + "h " + String(mins) + "m";
+
+  return reply;
+}
+
+String SystemController::buildHelpReply(uint8_t permissions) {
+  String reply = "Comandi disponibili:";
+
+  if (permissions & PERM_STATUS) {
+    reply += "\nSTATO, AIUTO";
+  }
+  if (permissions & PERM_CLOSE) {
+    reply += "\nCHIUDI";
+  }
+  if (permissions & PERM_OPEN) {
+    reply += "\nAPRI";
+  }
+  if (permissions & PERM_CONFIG) {
+    reply += "\nCREDITO, RIAVVIO";
+  }
 
   return reply;
 }

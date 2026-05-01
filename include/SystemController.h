@@ -85,4 +85,5 @@ private:
   void notifyAdmins(const char* message);
   void notifyAllUsers(const char* message);
   String buildStatusReply();
+  String buildHelpReply(uint8_t permissions);
 };
