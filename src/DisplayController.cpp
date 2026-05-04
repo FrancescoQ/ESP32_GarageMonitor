@@ -302,18 +302,18 @@ void DisplayController::renderSystem() {
     m_lcd.print(F("Door:Closed"));
   }
 
-  // Line 2: Uptime
-  // "Up: 3d 14h 22m"
+  // Line 2: Version + uptime compact
+  // "v1.0.0  Up:3d14h"
   m_lcd.setCursor(0, 1);
   unsigned long totalMin = millis() / 60000;
   unsigned long days = totalMin / 1440;
   unsigned long hours = (totalMin % 1440) / 60;
-  unsigned long mins = totalMin % 60;
   char line[32];
   if (days > 0) {
-    snprintf(line, sizeof(line), "Up: %lud %luh %lum", days, hours, mins);
+    snprintf(line, sizeof(line), "v%-6s%lud%luh", FIRMWARE_VERSION, days, hours);
   } else {
-    snprintf(line, sizeof(line), "Up: %luh %lum", hours, mins);
+    unsigned long mins = totalMin % 60;
+    snprintf(line, sizeof(line), "v%-6s %luh%lum", FIRMWARE_VERSION, hours, mins);
   }
   m_lcd.print(line);
 }

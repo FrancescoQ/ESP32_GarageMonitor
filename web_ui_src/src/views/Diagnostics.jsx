@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { fetchJSON } from '../api';
 
 const FIELDS = [
+  { key: 'firmware', label: 'Firmware' },
   { key: 'door', label: 'Door' },
   { key: 'temperature', label: 'Temperature' },
   { key: 'humidity', label: 'Humidity' },

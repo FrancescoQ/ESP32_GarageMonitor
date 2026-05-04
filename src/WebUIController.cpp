@@ -321,6 +321,7 @@ void WebUIController::handleGetDiagnostics() {
     snprintf(uptime, sizeof(uptime), "%luh %lum", hours, mins);
   }
   doc["uptime"] = uptime;
+  doc["firmware"] = FIRMWARE_VERSION;
 
   String response;
   serializeJson(doc, response);

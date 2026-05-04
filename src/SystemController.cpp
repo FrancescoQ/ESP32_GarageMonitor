@@ -29,7 +29,8 @@ SystemController::SystemController()
 
 void SystemController::begin() {
   Serial.println(F("\n========================================"));
-  Serial.println(F("  Garage Monitor - Starting"));
+  Serial.print(F("  Garage Monitor v"));
+  Serial.println(FIRMWARE_VERSION);
   Serial.println(F("========================================\n"));
 
   // 1. Door subsystem FIRST (relays fail-safe OFF)
@@ -605,6 +606,9 @@ String SystemController::buildStatusReply() {
     reply += String(days) + "g ";
   }
   reply += String(hours) + "h " + String(mins) + "m";
+
+  reply += "\nVersione: ";
+  reply += FIRMWARE_VERSION;
 
   return reply;
 }

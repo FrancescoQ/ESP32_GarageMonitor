@@ -84,8 +84,8 @@ export function Settings() {
         <span class="text-xs text-gray-400">ms</span>
       </FormRow>
 
-      <FormRow label="Deep sleep" hint="Enable low-power deep sleep between checks (Phase 5)">
-        <Toggle checked={s.deep_sleep} onChange={v => update('deep_sleep', v)} />
+      <FormRow label="Deep sleep" hint="Not yet implemented (Phase 5)">
+        <Toggle checked={s.deep_sleep} onChange={v => update('deep_sleep', v)} disabled />
       </FormRow>
 
       <FormRow label="Fwd unknown SMS" hint="Forward SMS from unknown numbers to admin users">

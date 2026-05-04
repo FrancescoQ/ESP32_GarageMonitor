@@ -1,12 +1,14 @@
 import { h } from 'preact';
 
-export function Toggle({ checked, onChange }) {
+export function Toggle({ checked, onChange, disabled }) {
   return (
     <button
       type="button"
-      onClick={() => onChange(!checked)}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
       class={
-        'relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors cursor-pointer ' +
+        'relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors ' +
+        (disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer ') +
         (checked ? 'bg-green-700' : 'bg-gray-600')
       }
     >
