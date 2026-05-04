@@ -27,6 +27,7 @@
 #include <WiFi.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <ElegantOTA.h>
 
 WebUIController::WebUIController()
   : m_server(nullptr),
@@ -79,6 +80,7 @@ void WebUIController::begin(ConfigManager& config, const Door& door,
   m_server->on("/api/reboot", HTTP_POST, [this]() { handleReboot(); });
   m_server->onNotFound([this]() { handleNotFound(); });
 
+  ElegantOTA.begin(m_server);
   m_server->begin();
   Serial.println(F("[WEB] Web server started"));
 }
@@ -86,6 +88,7 @@ void WebUIController::begin(ConfigManager& config, const Door& door,
 void WebUIController::loop() {
   if (m_server) {
     m_server->handleClient();
+    ElegantOTA.loop();
   }
 }
 

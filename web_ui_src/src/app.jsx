@@ -28,12 +28,20 @@ function App() {
     <div class="max-w-xl mx-auto p-4">
       <div class="flex items-center justify-between mb-3">
         <h1 class="text-xl font-semibold text-sky-400">Garage Monitor Setup</h1>
-        <button
-          onClick={reboot}
-          class="text-xs px-3 py-1.5 rounded bg-red-900 hover:bg-red-800 text-red-300 cursor-pointer"
-        >
-          Reboot
-        </button>
+        <div class="flex gap-2">
+          <a
+            href="/update"
+            class="text-xs px-3 py-1.5 rounded bg-sky-900 hover:bg-sky-800 text-sky-300 no-underline"
+          >
+            Update Firmware
+          </a>
+          <button
+            onClick={reboot}
+            class="text-xs px-3 py-1.5 rounded bg-red-900 hover:bg-red-800 text-red-300 cursor-pointer"
+          >
+            Reboot
+          </button>
+        </div>
       </div>
 
       <div class="flex gap-1">
