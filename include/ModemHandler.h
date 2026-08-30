@@ -154,6 +154,24 @@ public:
    */
   TinyGsm& getModem();
 
+  /** @brief Total SMS sent since boot */
+  unsigned long getSmsSentCount() const;
+
+  /** @brief Total SMS received since boot */
+  unsigned long getSmsReceivedCount() const;
+
+  /** @brief Phone number of last SMS sender (empty if none) */
+  const String& getLastSender() const;
+
+  /** @brief Phone number of last SMS recipient (empty if none) */
+  const String& getLastRecipient() const;
+
+  /** @brief Date of last received SMS as "DD/MM/YY" (empty if none) */
+  const String& getLastReceiveDate() const;
+
+  /** @brief Date of last sent SMS as "DD/MM/YY" (empty if none) */
+  const String& getLastSendDate() const;
+
 private:
   TinyGsm m_modem;
   bool m_ready;
@@ -161,6 +179,26 @@ private:
   unsigned long m_lastSignalCheck;
   int m_smsIndices[MAX_SMS_SLOTS];  ///< SIM storage indices from last poll
   int m_smsCount;                   ///< Number of SMS found in last poll
+
+  // SMS statistics (RAM-only, reset on reboot)
+  unsigned long m_smsSentCount;
+  unsigned long m_smsReceivedCount;
+  String m_lastSender;
+  String m_lastRecipient;
+  String m_lastReceiveDate;
+  String m_lastSendDate;
+
+  /**
+   * @brief Convert modem timestamp "YY/MM/DD,..." to "DD/MM/YY"
+   * @return Formatted date or empty string on parse failure
+   */
+  String formatDateDDMMYY(const String& timestamp);
+
+  /**
+   * @brief Query AT+CCLK? and return current date as "DD/MM/YY"
+   * @return Formatted date or empty string on failure
+   */
+  String queryCurrentDate();
 
   /**
    * @brief Send raw AT command and return response

@@ -58,7 +58,7 @@ public:
   void showNotification(const char* line1, const char* line2 = nullptr);
 
 private:
-  static const int NUM_PAGES = 3;
+  static const int NUM_PAGES = 5;
 
   LiquidCrystal_I2C m_lcd;
   const Door& m_door;
@@ -91,6 +91,8 @@ private:
   void renderNetworkStatus();
   void renderEnvironment();
   void renderSystem();
+  void renderSmsReceived();
+  void renderSmsSent();
   void checkFuncButton();
 
 public:

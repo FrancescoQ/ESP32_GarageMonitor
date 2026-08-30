@@ -19,7 +19,9 @@ ModemHandler::ModemHandler()
     m_ready(false),
     m_networkConnected(false),
     m_lastSignalCheck(0),
-    m_smsCount(0) {
+    m_smsCount(0),
+    m_smsSentCount(0),
+    m_smsReceivedCount(0) {
   memset(m_smsIndices, 0, sizeof(m_smsIndices));
 }
 
@@ -186,6 +188,9 @@ bool ModemHandler::sendSMS(const char* number, const char* message) {
 
   if (success) {
     Serial.println(F("[MODEM] SMS sent successfully!"));
+    m_smsSentCount++;
+    m_lastRecipient = number;
+    m_lastSendDate = queryCurrentDate();
   } else {
     Serial.println(F("[MODEM] SMS send FAILED"));
   }
@@ -309,6 +314,10 @@ bool ModemHandler::readSMS(int index, ReceivedSMS& sms) {
   }
   sms.message.trim();
 
+  m_smsReceivedCount++;
+  m_lastSender = sms.sender;
+  m_lastReceiveDate = formatDateDDMMYY(sms.timestamp);
+
   Serial.print(F("[MODEM] SMS #"));
   Serial.print(index);
   Serial.print(F(" from: "));
@@ -388,6 +397,57 @@ int ModemHandler::getHour() {
 
 TinyGsm& ModemHandler::getModem() {
   return m_modem;
+}
+
+unsigned long ModemHandler::getSmsSentCount() const {
+  return m_smsSentCount;
+}
+
+unsigned long ModemHandler::getSmsReceivedCount() const {
+  return m_smsReceivedCount;
+}
+
+const String& ModemHandler::getLastSender() const {
+  return m_lastSender;
+}
+
+const String& ModemHandler::getLastRecipient() const {
+  return m_lastRecipient;
+}
+
+const String& ModemHandler::getLastReceiveDate() const {
+  return m_lastReceiveDate;
+}
+
+const String& ModemHandler::getLastSendDate() const {
+  return m_lastSendDate;
+}
+
+String ModemHandler::formatDateDDMMYY(const String& timestamp) {
+  // Input: "YY/MM/DD,HH:MM:SS±TZ" (modem format)
+  if (timestamp.length() < 8) return "";
+  if (timestamp.charAt(2) != '/' || timestamp.charAt(5) != '/') return "";
+
+  // Rearrange YY/MM/DD → DD/MM/YY
+  return timestamp.substring(6, 8) + "/"
+       + timestamp.substring(3, 5) + "/"
+       + timestamp.substring(0, 2);
+}
+
+String ModemHandler::queryCurrentDate() {
+  String response = sendCommand("AT+CCLK?", 2000);
+
+  // Response: +CCLK: "YY/MM/DD,HH:MM:SS±TZ"
+  int pos = response.indexOf("+CCLK:");
+  if (pos < 0) return "";
+
+  int quoteStart = response.indexOf('"', pos);
+  if (quoteStart < 0) return "";
+
+  // Extract "YY/MM/DD" (8 chars after opening quote)
+  if (quoteStart + 9 > (int)response.length()) return "";
+  String dateStr = response.substring(quoteStart + 1, quoteStart + 9);
+  return formatDateDDMMYY(dateStr);
 }
 
 // -- Private methods --

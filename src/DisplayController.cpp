@@ -215,6 +215,12 @@ void DisplayController::renderPage() {
     case 2:
       renderSystem();
       break;
+    case 3:
+      renderSmsReceived();
+      break;
+    case 4:
+      renderSmsSent();
+      break;
   }
 }
 
@@ -287,6 +293,56 @@ void DisplayController::showSetupMode(const char* ssid, const char* ip) {
   m_lcd.print(ssid);
   m_lcd.setCursor(0, 1);
   m_lcd.print(ip);
+}
+
+void DisplayController::renderSmsReceived() {
+  // Line 1: "RX:  12 30/08/26"
+  m_lcd.setCursor(0, 0);
+  char line[32];
+  unsigned long count = m_modem.getSmsReceivedCount();
+  const String& date = m_modem.getLastReceiveDate();
+  if (date.length() > 0) {
+    snprintf(line, sizeof(line), "RX:%4lu %s",
+             count > 9999 ? 9999UL : count, date.c_str());
+  } else {
+    snprintf(line, sizeof(line), "RX:%4lu",
+             count > 9999 ? 9999UL : count);
+  }
+  m_lcd.print(line);
+
+  // Line 2: last sender phone number or "--"
+  m_lcd.setCursor(0, 1);
+  const String& sender = m_modem.getLastSender();
+  if (sender.length() > 0) {
+    m_lcd.print(sender.substring(0, LCD_COLS));
+  } else {
+    m_lcd.print(F("--"));
+  }
+}
+
+void DisplayController::renderSmsSent() {
+  // Line 1: "TX:   8 30/08/26"
+  m_lcd.setCursor(0, 0);
+  char line[32];
+  unsigned long count = m_modem.getSmsSentCount();
+  const String& date = m_modem.getLastSendDate();
+  if (date.length() > 0) {
+    snprintf(line, sizeof(line), "TX:%4lu %s",
+             count > 9999 ? 9999UL : count, date.c_str());
+  } else {
+    snprintf(line, sizeof(line), "TX:%4lu",
+             count > 9999 ? 9999UL : count);
+  }
+  m_lcd.print(line);
+
+  // Line 2: last recipient phone number or "--"
+  m_lcd.setCursor(0, 1);
+  const String& recipient = m_modem.getLastRecipient();
+  if (recipient.length() > 0) {
+    m_lcd.print(recipient.substring(0, LCD_COLS));
+  } else {
+    m_lcd.print(F("--"));
+  }
 }
 
 void DisplayController::renderSystem() {
