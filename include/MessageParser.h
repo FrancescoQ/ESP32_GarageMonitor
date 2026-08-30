@@ -55,6 +55,7 @@ enum class SMSCommand {
   CREDIT,
   REBOOT,
   HELP,
+  INFO,
   UNKNOWN
 };
 

@@ -82,6 +82,7 @@ SMSCommand MessageParser::parseCommand(const String& message) {
   if (trimmed == "CREDIT" || trimmed == "CREDITO") return SMSCommand::CREDIT;
   if (trimmed == "REBOOT" || trimmed == "RIAVVIO") return SMSCommand::REBOOT;
   if (trimmed == "HELP" || trimmed == "AIUTO") return SMSCommand::HELP;
+  if (trimmed == "INFO") return SMSCommand::INFO;
 
   return SMSCommand::UNKNOWN;
 }
@@ -94,6 +95,7 @@ uint8_t MessageParser::requiredPermission(SMSCommand cmd) {
     case SMSCommand::CREDIT:  return PERM_CONFIG;
     case SMSCommand::REBOOT:  return PERM_CONFIG;
     case SMSCommand::HELP:    return PERM_STATUS;
+    case SMSCommand::INFO:    return PERM_CONFIG;
     case SMSCommand::UNKNOWN: return 0;
   }
   return 0;

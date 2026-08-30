@@ -539,6 +539,15 @@ void SystemController::handleSMS(const ReceivedSMS& sms) {
       ESP.restart();
       break;
 
+    case SMSCommand::INFO: {
+      String reply = buildInfoReply();
+      Serial.print(F("[SYS] INFO reply: "));
+      Serial.println(reply);
+      m_modem.sendSMS(sms.sender.c_str(), reply.c_str());
+      m_display.showNotification(notifyLine1, "CMD: INFO");
+      break;
+    }
+
     case SMSCommand::UNKNOWN:
       // Unreachable — handled above, but keeps compiler happy
       break;
@@ -621,17 +630,67 @@ String SystemController::buildHelpReply(uint8_t permissions) {
   String reply = "Comandi disponibili:";
 
   if (permissions & PERM_STATUS) {
-    reply += "\nSTATO, AIUTO";
+    reply += "\nSTATO: stato garage";
   }
   if (permissions & PERM_CLOSE) {
-    reply += "\nCHIUDI";
+    reply += "\nCHIUDI: chiudi porta";
   }
   if (permissions & PERM_OPEN) {
-    reply += "\nAPRI";
+    reply += "\nAPRI: apri porta";
   }
   if (permissions & PERM_CONFIG) {
-    reply += "\nCREDITO, RIAVVIO";
+    reply += "\nCREDITO: credito";
+    reply += "\nRIAVVIO: riavvia";
+    reply += "\nINFO: stats SMS/uptime";
   }
+
+  return reply;
+}
+
+String SystemController::buildInfoReply() {
+  unsigned long rx = m_modem.getSmsReceivedCount();
+  unsigned long tx = m_modem.getSmsSentCount();
+  const String& lastSender = m_modem.getLastSender();
+  const String& lastRecipient = m_modem.getLastRecipient();
+  const String& rxDate = m_modem.getLastReceiveDate();
+  const String& txDate = m_modem.getLastSendDate();
+
+  String reply = "SMS ricevuti: " + String(rx);
+  if (lastSender.length() > 0) {
+    reply += "\nDa: " + lastSender;
+    if (rxDate.length() > 0) {
+      reply += " " + rxDate;
+    }
+  }
+
+  reply += "\nSMS inviati: " + String(tx);
+  if (lastRecipient.length() > 0) {
+    reply += "\nA: " + lastRecipient;
+    if (txDate.length() > 0) {
+      reply += " " + txDate;
+    }
+  }
+
+  // Signal
+  int stars = m_modem.getSignalStars();
+  char sig[5] = "----";
+  for (int i = 0; i < stars && i < 4; i++) sig[i] = '*';
+  reply += "\nSegnale: ";
+  reply += sig;
+
+  // Uptime
+  unsigned long totalMin = millis() / 60000;
+  unsigned long days = totalMin / 1440;
+  unsigned long hours = (totalMin % 1440) / 60;
+  unsigned long mins = totalMin % 60;
+  reply += "\nAttivo da: ";
+  if (days > 0) {
+    reply += String(days) + "g ";
+  }
+  reply += String(hours) + "h " + String(mins) + "m";
+
+  reply += "\nVersione: ";
+  reply += FIRMWARE_VERSION;
 
   return reply;
 }
