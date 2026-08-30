@@ -182,7 +182,7 @@ void WebUIController::handleDeleteUser() {
 void WebUIController::handleGetSettings() {
   const SystemSettings& s = m_config->getSettings();
 
-  DynamicJsonDocument doc(384);
+  DynamicJsonDocument doc(512);
   doc["door_alert_min"] = s.doorAlertMin;
   doc["sms_poll_ms"] = s.smsPollMs;
   doc["deep_sleep"] = s.deepSleepEnabled;
@@ -195,6 +195,8 @@ void WebUIController::handleGetSettings() {
   doc["temp_min"] = s.tempMinThreshold;
   doc["temp_max"] = s.tempMaxThreshold;
   doc["hum_max"] = s.humMaxThreshold;
+  doc["relay_pulse_ms"] = s.relayPulseMs;
+  doc["relay_seq_delay_ms"] = s.relaySequenceDelayMs;
 
   String response;
   serializeJson(doc, response);
@@ -207,7 +209,7 @@ void WebUIController::handlePostSettings() {
     return;
   }
 
-  DynamicJsonDocument doc(384);
+  DynamicJsonDocument doc(512);
   DeserializationError err = deserializeJson(doc, m_server->arg("plain"));
   if (err) {
     m_server->send(400, "application/json", "{\"ok\":false,\"error\":\"Invalid JSON\"}");
@@ -271,6 +273,18 @@ void WebUIController::handlePostSettings() {
     float val = doc["hum_max"];
     if (val >= 0.0f && val <= 100.0f) {
       s.humMaxThreshold = val;
+    }
+  }
+  if (doc.containsKey("relay_pulse_ms")) {
+    uint32_t val = doc["relay_pulse_ms"];
+    if (val >= 50 && val <= 2000) {
+      s.relayPulseMs = val;
+    }
+  }
+  if (doc.containsKey("relay_seq_delay_ms")) {
+    uint32_t val = doc["relay_seq_delay_ms"];
+    if (val >= 100 && val <= 5000) {
+      s.relaySequenceDelayMs = val;
     }
   }
   // Validate: temp_min must be less than temp_max

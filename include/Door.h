@@ -70,6 +70,13 @@ public:
    */
   void stop();
 
+  /**
+   * @brief Update relay timing parameters
+   * @param pulseMs Relay pulse duration in ms
+   * @param sequenceDelayMs Pause between STOP and action in ms
+   */
+  void setTiming(uint32_t pulseMs, uint32_t sequenceDelayMs);
+
 private:
   DoorSensor m_sensor;
   DoorController m_controller;

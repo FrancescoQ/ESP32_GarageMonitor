@@ -71,6 +71,34 @@ export function Settings() {
         <span class="text-xs text-gray-400">min</span>
       </FormRow>
 
+      <h3 class="text-sky-400 text-sm font-semibold mb-3 mt-2">Door Relay</h3>
+
+      <FormRow label="Relay pulse" hint="How long the relay stays on per activation (50-2000)">
+        <input
+          type="number"
+          min="50"
+          max="2000"
+          step="50"
+          value={s.relay_pulse_ms}
+          onInput={e => update('relay_pulse_ms', parseInt(e.target.value))}
+          class="w-24 bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm text-gray-200"
+        />
+        <span class="text-xs text-gray-400">ms</span>
+      </FormRow>
+
+      <FormRow label="STOP→action pause" hint="Delay between STOP pulse and OPEN/CLOSE pulse (100-5000)">
+        <input
+          type="number"
+          min="100"
+          max="5000"
+          step="50"
+          value={s.relay_seq_delay_ms}
+          onInput={e => update('relay_seq_delay_ms', parseInt(e.target.value))}
+          class="w-24 bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm text-gray-200"
+        />
+        <span class="text-xs text-gray-400">ms</span>
+      </FormRow>
+
       <FormRow label="SMS poll" hint="How often to check for incoming SMS">
         <input
           type="number"

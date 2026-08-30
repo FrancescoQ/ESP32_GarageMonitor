@@ -45,6 +45,8 @@ struct SystemSettings {
   float tempMinThreshold;   // Minimum temperature (°C) — alert below this
   float tempMaxThreshold;   // Maximum temperature (°C) — alert above this
   float humMaxThreshold;    // Maximum humidity (%) — alert above this
+  uint32_t relayPulseMs;          // Momentary relay activation duration (ms)
+  uint32_t relaySequenceDelayMs;  // Pause between STOP and OPEN/CLOSE (ms)
 };
 
 // Default settings values
@@ -60,6 +62,8 @@ const bool DEFAULT_ENV_ALERT_ENABLED = false;
 const float DEFAULT_TEMP_MIN_THRESHOLD = 0.0f;
 const float DEFAULT_TEMP_MAX_THRESHOLD = 40.0f;
 const float DEFAULT_HUM_MAX_THRESHOLD = 85.0f;
+const uint32_t DEFAULT_RELAY_PULSE_MS = 200;
+const uint32_t DEFAULT_RELAY_SEQUENCE_DELAY_MS = 500;
 
 /**
  * @brief NVS-backed configuration manager

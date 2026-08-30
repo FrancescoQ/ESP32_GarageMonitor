@@ -14,6 +14,8 @@
 
 class DoorController {
 public:
+  DoorController();
+
   /**
    * @brief Initialize relay GPIOs and set all to RELAY_OFF
    *
@@ -37,7 +39,17 @@ public:
    */
   void stop();
 
+  /**
+   * @brief Update relay timing parameters (from ConfigManager)
+   * @param pulseMs Relay pulse duration in ms (50-2000)
+   * @param sequenceDelayMs Pause between STOP and action in ms (100-5000)
+   */
+  void setTiming(uint32_t pulseMs, uint32_t sequenceDelayMs);
+
 private:
+  uint32_t m_pulseMs;
+  uint32_t m_sequenceDelayMs;
+
   /**
    * @brief Momentary pulse on a relay pin
    * @param pin GPIO pin to pulse

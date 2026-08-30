@@ -46,3 +46,7 @@ void Door::open() {
 void Door::stop() {
   m_controller.stop();
 }
+
+void Door::setTiming(uint32_t pulseMs, uint32_t sequenceDelayMs) {
+  m_controller.setTiming(pulseMs, sequenceDelayMs);
+}

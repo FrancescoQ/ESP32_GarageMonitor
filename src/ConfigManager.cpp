@@ -30,6 +30,8 @@ static const char* KEY_ENV_ALERT = "env_alert";
 static const char* KEY_TEMP_MIN = "temp_min";
 static const char* KEY_TEMP_MAX = "temp_max";
 static const char* KEY_HUM_MAX = "hum_max";
+static const char* KEY_RELAY_PULSE = "relay_pulse";
+static const char* KEY_RELAY_SEQ_DEL = "relay_seq_del";
 
 ConfigManager::ConfigManager()
   : m_userCount(0),
@@ -46,6 +48,8 @@ ConfigManager::ConfigManager()
   m_settings.tempMinThreshold = DEFAULT_TEMP_MIN_THRESHOLD;
   m_settings.tempMaxThreshold = DEFAULT_TEMP_MAX_THRESHOLD;
   m_settings.humMaxThreshold = DEFAULT_HUM_MAX_THRESHOLD;
+  m_settings.relayPulseMs = DEFAULT_RELAY_PULSE_MS;
+  m_settings.relaySequenceDelayMs = DEFAULT_RELAY_SEQUENCE_DELAY_MS;
 }
 
 void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
@@ -93,7 +97,12 @@ void ConfigManager::begin(const AuthorizedUser* defaultUsers) {
   Serial.print(F(", temp_max="));
   Serial.print(m_settings.tempMaxThreshold);
   Serial.print(F(", hum_max="));
-  Serial.println(m_settings.humMaxThreshold);
+  Serial.print(m_settings.humMaxThreshold);
+  Serial.print(F(", relay_pulse="));
+  Serial.print(m_settings.relayPulseMs);
+  Serial.print(F("ms, relay_seq_del="));
+  Serial.print(m_settings.relaySequenceDelayMs);
+  Serial.println(F("ms"));
 }
 
 // =============================================================================
@@ -222,7 +231,12 @@ void ConfigManager::setSettings(const SystemSettings& settings) {
   Serial.print(F(", temp_max="));
   Serial.print(m_settings.tempMaxThreshold);
   Serial.print(F(", hum_max="));
-  Serial.println(m_settings.humMaxThreshold);
+  Serial.print(m_settings.humMaxThreshold);
+  Serial.print(F(", relay_pulse="));
+  Serial.print(m_settings.relayPulseMs);
+  Serial.print(F("ms, relay_seq_del="));
+  Serial.print(m_settings.relaySequenceDelayMs);
+  Serial.println(F("ms"));
 }
 
 // =============================================================================
@@ -300,6 +314,8 @@ void ConfigManager::loadSettings() {
   m_settings.tempMinThreshold = prefs.getFloat(KEY_TEMP_MIN, DEFAULT_TEMP_MIN_THRESHOLD);
   m_settings.tempMaxThreshold = prefs.getFloat(KEY_TEMP_MAX, DEFAULT_TEMP_MAX_THRESHOLD);
   m_settings.humMaxThreshold = prefs.getFloat(KEY_HUM_MAX, DEFAULT_HUM_MAX_THRESHOLD);
+  m_settings.relayPulseMs = prefs.getUInt(KEY_RELAY_PULSE, DEFAULT_RELAY_PULSE_MS);
+  m_settings.relaySequenceDelayMs = prefs.getUInt(KEY_RELAY_SEQ_DEL, DEFAULT_RELAY_SEQUENCE_DELAY_MS);
 
   prefs.end();
 }
@@ -320,6 +336,8 @@ void ConfigManager::saveSettings() {
   prefs.putFloat(KEY_TEMP_MIN, m_settings.tempMinThreshold);
   prefs.putFloat(KEY_TEMP_MAX, m_settings.tempMaxThreshold);
   prefs.putFloat(KEY_HUM_MAX, m_settings.humMaxThreshold);
+  prefs.putUInt(KEY_RELAY_PULSE, m_settings.relayPulseMs);
+  prefs.putUInt(KEY_RELAY_SEQ_DEL, m_settings.relaySequenceDelayMs);
 
   prefs.end();
 }

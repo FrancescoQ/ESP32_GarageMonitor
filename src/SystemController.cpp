@@ -66,6 +66,10 @@ void SystemController::begin() {
   // 5. ConfigManager (NVS load — both modes need user data)
   m_config.begin(AUTHORIZED_USERS);
 
+  // Apply relay timing from NVS config to DoorController
+  const SystemSettings& settings = m_config.getSettings();
+  m_door.setTiming(settings.relayPulseMs, settings.relaySequenceDelayMs);
+
   // Wire MessageParser to use ConfigManager for user lookups
   m_parser.setConfigManager(&m_config);
 
